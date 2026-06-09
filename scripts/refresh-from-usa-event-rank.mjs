@@ -12,11 +12,17 @@ const SISENSE_URL = "https://usaswimming.sisense.com";
 const EVENT_RANK_DASHBOARD = "66d20272b96443003380a50b";
 const EVENT_RANK_WIDGET = "66d20272b96443003380a50d";
 const EVENT_RANK_DS = "localhost_aUSAIAAaSwimmingIAAaTimesIAAaElasticube";
+const PERSON_DASHBOARD = "66034c9773fdb1003f76559e";
+const PERSON_WIDGET = "66034c9f73fdb1003f7655a0";
+const PERSON_DS = "localhost_aPublicIAAaPersonIAAaSearch";
 const REQUEST_TIMEOUT_MS = 75000;
 const REQUEST_ATTEMPTS = 3;
 const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
+const PERSON_ROWS_PER_PAGE = 500;
 const QUALIFYING_START = "2025-07-01";
-const QUALIFYING_END = "2026-07-25";
+const ZONE_QUALIFYING_END = "2026-07-25";
+const TODAY = new Date().toISOString().slice(0, 10);
+const QUALIFYING_END = minIsoDate(ZONE_QUALIFYING_END, TODAY);
 
 const AGE_GROUPS = [
   { label: "10&U", from: 0, to: 10 },
@@ -53,6 +59,7 @@ await fs.mkdir(DATA_DIR, { recursive: true });
 const token = await getSisenseToken();
 const widget = await getWidget(EVENT_RANK_DASHBOARD, EVENT_RANK_WIDGET, token);
 const baseColumns = widget.metadata.panels.find(p => p.name === "columns").items.map(item => ({ jaql: item.jaql }));
+const currentAges = await getCurrentAges(token);
 const rowsByGroup = {};
 const swimmersByKey = new Map();
 
@@ -66,12 +73,15 @@ for (const ageGroup of AGE_GROUPS) {
       for (const row of rows) {
         const personKey = Number(row[12]?.data ?? row[12]?.text);
         if (!personKey) continue;
+        const person = currentAges.get(personKey);
+        const ageAtMeet = Number(row[4]?.data ?? row[4]?.text) || null;
+        const currentAge = person?.age || ageAtMeet || ageGroup.to;
         const key = `${personKey}|${gender.value}`;
         if (!swimmersByKey.has(key)) {
           swimmersByKey.set(key, {
-            name: row[2]?.text || "",
-            team: row[7]?.text || "",
-            age: Number(row[4]?.data ?? row[4]?.text) || ageGroup.to,
+            name: person?.name || row[2]?.text || "",
+            team: row[7]?.text || person?.team || "",
+            age: currentAge,
             gender: gender.value,
             applied: true,
             personKey,
@@ -82,7 +92,9 @@ for (const ageGroup of AGE_GROUPS) {
           });
         }
         const swimmer = swimmersByKey.get(key);
-        const swim = eventRankRowToSwim(row, event);
+        swimmer.age = currentAge;
+        if (!swimmer.team && person?.team) swimmer.team = person.team;
+        const swim = eventRankRowToSwim(row, event, ageAtMeet);
         const existingIndex = swimmer.swims.findIndex(s => s.event === swim.event && s.course === swim.course);
         if (existingIndex === -1 || toSeconds(swim.time) < toSeconds(swimmer.swims[existingIndex].time)) {
           if (existingIndex === -1) swimmer.swims.push(swim);
@@ -106,7 +118,8 @@ const payload = {
   lastUpdated: new Date().toISOString().slice(0, 10),
   notes: [
     "Refreshed from USA Swimming Top Times / Event Rank Search.",
-    `Filters: PN LSC, LCM events, ${QUALIFYING_START} through ${QUALIFYING_END}, age group, and gender.`,
+    `Filters: PN LSC, LCM events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,
+    "Dashboard age groups use current swimmer ages from USA Swimming Person Search, not age at meet.",
     `Collected up to ${ROWS_PER_EVENT} ranked rows per event to build top-50 all-around rankings per age group and gender.`
   ],
   swimmers
@@ -152,6 +165,35 @@ async function getWidget(dashboardOid, widgetOid, token) {
   return getJson(`${SISENSE_URL}/api/v1/dashboards/${dashboardOid}/widgets/${widgetOid}`, token);
 }
 
+async function getCurrentAges(token) {
+  const widget = await getWidget(PERSON_DASHBOARD, PERSON_WIDGET, token);
+  const columns = widget.metadata.panels.find(p => p.name === "columns").items.map(item => ({ jaql: item.jaql }));
+  const metadata = [
+    ...columns,
+    scope("Persons", "LscCode", "text", { equals: "PN" }, "LSC"),
+    scope("Persons", "Age", "numeric", { from: 0, to: 18 }, "Age")
+  ];
+  const people = new Map();
+  for (let offset = 0; ; offset += PERSON_ROWS_PER_PAGE) {
+    const result = await jaql(PERSON_DS, widget.datasource, metadata, token, PERSON_ROWS_PER_PAGE, offset);
+    const rows = result.values || [];
+    for (const row of rows) {
+      const personKey = Number(row[4]?.data ?? row[4]?.text);
+      if (!personKey) continue;
+      people.set(personKey, {
+        name: row[0]?.text || "",
+        team: row[1]?.text || "",
+        lsc: row[2]?.text || "",
+        age: Number(row[3]?.data ?? row[3]?.text) || null
+      });
+    }
+    if (rows.length < PERSON_ROWS_PER_PAGE) break;
+    await delay(80);
+  }
+  console.log(`Loaded ${people.size} PN swimmer current ages from USA Swimming Person Search.`);
+  return people;
+}
+
 async function getEventRankRows({ widget, token, ageGroup, gender, eventCode }) {
   const metadata = [
     ...baseColumns,
@@ -163,11 +205,11 @@ async function getEventRankRows({ widget, token, ageGroup, gender, eventCode }) 
     scope("OrgUnit", "Level3Code", "text", { equals: "PN" }, "LSC"),
     scope("SeasonCalendar", "CalendarDate", "datetime", { from: QUALIFYING_START, to: QUALIFYING_END }, "Swim Date", "[SeasonCalendar.CalendarDate (Calendar)]")
   ];
-  const result = await jaql(widget.datasource, metadata, token, ROWS_PER_EVENT, 0);
+  const result = await jaql(EVENT_RANK_DS, widget.datasource, metadata, token, ROWS_PER_EVENT, 0);
   return result.values || [];
 }
 
-function eventRankRowToSwim(row, event) {
+function eventRankRowToSwim(row, event, ageAtMeet) {
   return {
     event,
     course: "LCM",
@@ -180,7 +222,8 @@ function eventRankRowToSwim(row, event) {
     team: row[7]?.text || "",
     swimEventKey: Number(row[10]?.data ?? row[10]?.text) || null,
     eventCompetitionCategoryKey: Number(row[11]?.data ?? row[11]?.text) || null,
-    usasSwimTimeKey: Number(row[14]?.data ?? row[14]?.text) || null
+    usasSwimTimeKey: Number(row[14]?.data ?? row[14]?.text) || null,
+    ageAtMeet
   };
 }
 
@@ -192,8 +235,8 @@ function scope(table, columnName, datatype, filter, title = columnName, dim = `[
   return { panel: "scope", jaql: { table, column: columnName, dim, datatype, title, filter } };
 }
 
-async function jaql(datasource, metadata, token, count = 500, offset = 0) {
-  return postJson(`${SISENSE_URL}/api/datasources/${EVENT_RANK_DS}/jaql`, {
+async function jaql(cubeId, datasource, metadata, token, count = 500, offset = 0) {
+  return postJson(`${SISENSE_URL}/api/datasources/${cubeId}/jaql`, {
     datasource,
     metadata,
     count,
@@ -211,10 +254,14 @@ function parseEventRankDate(value) {
   if (match) return `${match[1]}-${match[2]}-${match[3]}`;
   match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (match) {
-    const [, month, day, year] = match;
+    const [, day, month, year] = match;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
   return "";
+}
+
+function minIsoDate(a, b) {
+  return a < b ? a : b;
 }
 
 function toSeconds(value) {

@@ -12,7 +12,9 @@ const TARGET = "Ethan Wang";
 const DEFAULT_AGE_GROUP = "11-12";
 const DEFAULT_GENDER = "M";
 const QUALIFYING_START = new Date("2025-07-01T00:00:00");
-const QUALIFYING_END = new Date("2026-07-25T23:59:59");
+const ZONE_QUALIFYING_END = new Date("2026-07-25T23:59:59");
+const TODAY_END = new Date(`${new Date().toISOString().slice(0, 10)}T23:59:59`);
+const QUALIFYING_END = ZONE_QUALIFYING_END < TODAY_END ? ZONE_QUALIFYING_END : TODAY_END;
 const EVENT_ORDER = [
   "50 Free", "100 Free", "200 Free", "50 Back", "100 Back", "200 Back",
   "50 Breast", "100 Breast", "200 Breast", "50 Fly", "100 Fly", "200 Fly",
