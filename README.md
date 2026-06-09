@@ -6,9 +6,9 @@ Hosted at: https://jialiu103.github.io/western-zone-dashboard/
 
 This GitHub repository is the source of truth for the hosted site.
 
-The public page is generated from USA Swimming Individual Times Search data:
+The public page is generated from official USA Swimming Data Hub data:
 
-1. `scripts/refresh-from-usa-individual-times.mjs` refreshes `data/swimmers.json`.
+1. `scripts/refresh-from-usa-event-rank.mjs` refreshes `data/swimmers.json` from Top Times / Event Rank Search for all configured age groups and genders.
 2. `scripts/build-public-lite.mjs` rebuilds `index.html`.
 3. `.github/workflows/daily-refresh.yml` runs the refresh daily and commits changes back to GitHub.
 
