@@ -1,11 +1,16 @@
 {
-  "checkedAt": "2026-06-10T05:02:16.486Z",
-  "finishedAt": "2026-06-10T05:04:24.689Z",
+  "checkedAt": "2026-06-10T05:45:45.862Z",
+  "finishedAt": "2026-06-10T05:47:53.232Z",
   "status": "refreshed",
   "source": "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
   "swimmers": 2680,
   "rowsPerEvent": 120,
   "scyRowsPerEvent": 250,
+  "powerPoints": {
+    "total": 25195,
+    "resolved": 25195,
+    "assigned": 25195
+  },
   "groups": {
     "10&U|M": {
       "LCM 50 Free": 120,

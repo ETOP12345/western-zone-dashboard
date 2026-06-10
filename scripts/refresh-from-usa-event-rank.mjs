@@ -20,6 +20,7 @@ const REQUEST_ATTEMPTS = 3;
 const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
 const SCY_ROWS_PER_EVENT = Number(process.env.EVENT_RANK_SCY_ROWS_PER_EVENT || 250);
 const PERSON_ROWS_PER_PAGE = 500;
+const POWER_POINT_KEY_BATCH_SIZE = 500;
 const QUALIFYING_START = "2025-07-01";
 const ZONE_QUALIFYING_END = "2026-07-25";
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -129,6 +130,7 @@ const swimmers = [...swimmersByKey.values()].sort((a, b) =>
   a.age - b.age ||
   a.name.localeCompare(b.name)
 );
+const powerPointStats = await hydratePowerPoints(swimmers, widget.datasource, token);
 
 const payload = {
   source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
@@ -137,6 +139,7 @@ const payload = {
     "Refreshed from USA Swimming Top Times / Event Rank Search.",
     `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,
     "Dashboard age groups use current swimmer ages from USA Swimming Person Search, not age at meet.",
+    `Power points loaded from USA Swimming UsasSwimTime.PowerPoints for ${powerPointStats.resolved} of ${powerPointStats.total} swim-time keys.`,
     `Collected up to ${ROWS_PER_EVENT} ranked rows per event to build top-50 all-around rankings per age group and gender.`
   ],
   swimmers
@@ -151,6 +154,7 @@ await fs.writeFile(STATUS_JSON, JSON.stringify({
   swimmers: swimmers.length,
   rowsPerEvent: ROWS_PER_EVENT,
   scyRowsPerEvent: SCY_ROWS_PER_EVENT,
+  powerPoints: powerPointStats,
   groups: rowsByGroup
 }, null, 2));
 
@@ -243,6 +247,44 @@ function eventRankRowToSwim(row, event, course, ageAtMeet) {
     usasSwimTimeKey: Number(row[14]?.data ?? row[14]?.text) || null,
     ageAtMeet
   };
+}
+
+async function hydratePowerPoints(swimmers, datasource, token) {
+  const keySet = new Set();
+  for (const swimmer of swimmers) {
+    for (const swim of swimmer.swims || []) {
+      if (swim.usasSwimTimeKey) keySet.add(Number(swim.usasSwimTimeKey));
+    }
+  }
+  const keys = [...keySet];
+  const points = new Map();
+  for (let index = 0; index < keys.length; index += POWER_POINT_KEY_BATCH_SIZE) {
+    const batch = keys.slice(index, index + POWER_POINT_KEY_BATCH_SIZE);
+    const metadata = [
+      column("UsasSwimTime", "UsasSwimTimeKey", "numeric", "UsasSwimTimeKey"),
+      column("UsasSwimTime", "PowerPoints", "numeric", "Power Points"),
+      scope("UsasSwimTime", "UsasSwimTimeKey", "numeric", { members: batch }, "UsasSwimTimeKey")
+    ];
+    const result = await jaql(EVENT_RANK_DS, datasource, metadata, token, batch.length, 0);
+    for (const row of result.values || []) {
+      const key = Number(row[0]?.data ?? row[0]?.text);
+      const value = Number(row[1]?.data ?? row[1]?.text);
+      if (key && Number.isFinite(value)) points.set(key, value);
+    }
+    console.log(`Power points: ${Math.min(index + batch.length, keys.length)}/${keys.length} keys checked`);
+    await delay(80);
+  }
+  let assigned = 0;
+  for (const swimmer of swimmers) {
+    for (const swim of swimmer.swims || []) {
+      const value = points.get(Number(swim.usasSwimTimeKey));
+      if (Number.isFinite(value)) {
+        swim.powerPoints = value;
+        assigned++;
+      }
+    }
+  }
+  return { total: keys.length, resolved: points.size, assigned };
 }
 
 function column(table, columnName, datatype, title = columnName, dim = `[${table}.${columnName}]`) {
