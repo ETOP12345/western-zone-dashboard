@@ -116,7 +116,12 @@ function bestSwim(swimmer, event) {
 }
 
 function qualifies(swim, cuts) {
+  if (swim.course === "LCM" && isAaaOrBetter(swim.standard)) return true;
   return cuts[swim.event] && toSeconds(swim.time) <= toSeconds(cuts[swim.event]);
+}
+
+function isAaaOrBetter(standard) {
+  return ["AAA", "AAAA"].includes(String(standard || "").trim().toUpperCase());
 }
 
 function countCuts(swimmer) {
@@ -179,7 +184,7 @@ function toCompactSwim(swim) {
 }
 
 function tieType(swim) {
-  if (swim.course === "LCM" && qualifies(swim, AAA_CUTS.LCM)) return "LCM AAA";
+  if (swim.course === "LCM" && isAaaOrBetter(swim.standard)) return "LCM AAA";
   if (swim.course === "SCY" && qualifies(swim, AAA_CUTS.SCY)) return "SCY AAA";
   if (swim.course === "SCM" && qualifies(swim, AAA_CUTS.SCM_AA)) return "SCM AA";
   return "";
