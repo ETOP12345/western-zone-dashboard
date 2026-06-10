@@ -132,7 +132,7 @@ const swimmers = [...swimmersByKey.values()].sort((a, b) =>
 
 const payload = {
   source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
-  lastUpdated: new Date().toISOString().slice(0, 10),
+  lastUpdated: new Date().toISOString(),
   notes: [
     "Refreshed from USA Swimming Top Times / Event Rank Search.",
     `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,

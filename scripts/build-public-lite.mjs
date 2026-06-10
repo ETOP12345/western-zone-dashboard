@@ -11,6 +11,7 @@ const OUTPUT = process.env.PUBLIC_DASHBOARD_OUTPUT ||
 const TARGET = "Ethan Wang";
 const DEFAULT_AGE_GROUP = "11-12";
 const DEFAULT_GENDER = "M";
+const PUBLIC_LIMIT = 50;
 const QUALIFYING_START = new Date("2025-07-01T00:00:00");
 const ZONE_QUALIFYING_END = new Date("2026-07-25T23:59:59");
 const TODAY_END = new Date(`${new Date().toISOString().slice(0, 10)}T23:59:59`);
@@ -31,6 +32,7 @@ const AAA_CUTS = {
 };
 
 const source = JSON.parse(await fs.readFile(INPUT, "utf8"));
+const previousDashboard = await readPreviousDashboard(OUTPUT);
 const swimmers = (source.swimmers || []).map(normalizeSwimmer);
 const groups = {};
 for (const ageGroup of AGE_GROUPS) {
@@ -40,11 +42,15 @@ for (const ageGroup of AGE_GROUPS) {
     groups[key] = calculateRankings(groupSwimmers).map(toCompactSwimmer);
   }
 }
+applyRankDeltas(groups, previousDashboard?.groups || {});
+const rankChanges = summarizeRankChanges(groups);
 
 const compact = {
   source: source.source,
   lastUpdated: source.lastUpdated,
+  lastLoadedAt: String(source.lastUpdated || "").includes("T") ? source.lastUpdated : new Date().toISOString(),
   generatedAt: new Date().toISOString(),
+  rankChanges,
   target: TARGET,
   defaultAgeGroup: DEFAULT_AGE_GROUP,
   defaultGender: DEFAULT_GENDER,
@@ -56,6 +62,52 @@ const compact = {
 
 await fs.writeFile(OUTPUT, renderHtml(compact));
 console.log(`Wrote ${OUTPUT}`);
+
+async function readPreviousDashboard(outputPath) {
+  try {
+    const html = await fs.readFile(outputPath, "utf8");
+    const match = html.match(/const DATA=(.*?);\nconst TARGET=/s);
+    return match ? JSON.parse(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyRankDeltas(groups, previousGroups) {
+  for (const [key, rows] of Object.entries(groups)) {
+    const previous = new Map((previousGroups[key] || []).map(row => [rankIdentity(row), row.rank]));
+    for (const row of rows) {
+      const previousRank = previous.get(rankIdentity(row)) || null;
+      row.previousRank = previousRank;
+      row.rankDelta = previousRank ? previousRank - row.rank : null;
+    }
+  }
+}
+
+function summarizeRankChanges(groups) {
+  const summary = { changed: 0, up: 0, down: 0, new: 0, same: 0, checked: 0 };
+  for (const rows of Object.values(groups)) {
+    for (const row of rows.slice(0, PUBLIC_LIMIT)) {
+      summary.checked++;
+      if (!row.previousRank) {
+        summary.new++;
+      } else if (row.rankDelta > 0) {
+        summary.changed++;
+        summary.up++;
+      } else if (row.rankDelta < 0) {
+        summary.changed++;
+        summary.down++;
+      } else {
+        summary.same++;
+      }
+    }
+  }
+  return summary;
+}
+
+function rankIdentity(row) {
+  return `${row.name}|${row.team}|${row.ageGroup}|${row.gender}`;
+}
 
 function normalizeSwimmer(swimmer) {
   return {
@@ -217,7 +269,7 @@ function renderHtml(data) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Team Pacific Northwest Zones Ranking</title>
 <style>
-:root{--ink:#17202a;--muted:#64748b;--line:#d7dee8;--paper:#fff;--band:#f4f7fb;--green:#157347;--gold:#996515;--red:#b42318;--blue:#1d4ed8}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#eef3f8}button,select{font:inherit}header{padding:22px 28px;color:#fff;background:#123447}h1,h2,p{margin-top:0}h1{margin-bottom:0;font-size:28px}.eyebrow{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bde8ef}main{max-width:1480px;margin:0 auto;padding:20px}.status-band{display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:16px;border:1px solid var(--line);background:var(--paper)}.status-band>div{padding:16px;border-right:1px solid var(--line)}.status-band>div:last-child{border-right:0}.label,small,.muted{color:var(--muted)}.label{display:block;margin-bottom:4px;font-size:12px;font-weight:700;text-transform:uppercase}.status-band strong{display:block;font-size:24px}.controls{display:grid;grid-template-columns:180px 160px minmax(260px,1fr);gap:12px;margin-bottom:16px;padding:14px;border:1px solid var(--line);background:var(--band)}.field label{display:block;margin-bottom:5px;font-size:12px;font-weight:700;color:var(--muted)}.field select{width:100%;height:40px;border:1px solid var(--line);border-radius:6px;padding:0 10px;background:white}.content-grid{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;margin-bottom:16px}.rank-panel,.detail-panel,.rules-panel{border:1px solid var(--line);background:var(--paper)}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}.panel-head h2{margin:0}.panel-head button{border:1px solid var(--line);border-radius:6px;padding:8px 12px;background:var(--band);color:var(--ink);font-weight:700;cursor:pointer}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:860px}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:12px;color:var(--muted);text-transform:uppercase;background:#f8fafc}tbody tr{cursor:pointer}tbody tr:hover{background:#f5fbfc}tbody tr.selected-row{background:#e8f6f7}.pill{display:inline-flex;align-items:center;min-height:24px;border:0;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;white-space:nowrap;background:#e2e8f0;color:#334155}.pill.selected{background:#d1fae5;color:var(--green)}.pill.alternate{background:#fef3c7;color:var(--gold)}.pill.outside{background:#fee2e2;color:var(--red)}.pill.ethan{background:#dbeafe;color:var(--blue)}.event-list{display:flex;flex-wrap:wrap;gap:5px}.text-link{display:inline;border:0;border-radius:0;padding:0;background:transparent;color:inherit;font-weight:inherit;text-align:left;cursor:pointer}.event-link:hover,.text-link:hover{text-decoration:underline}.detail-body{padding:16px}.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}.metric{padding:10px;border:1px solid var(--line);background:#f8fafc}.metric strong{display:block;font-size:20px}.swim-card{padding:10px 0;border-top:1px solid var(--line)}.swim-card:first-of-type{border-top:0}.swim-card h3{margin:0 0 5px;font-size:15px}.swim-meta{color:var(--muted);font-size:13px;line-height:1.45}.mini-table{border-top:1px solid var(--line)}.mini-row{display:flex;width:100%;justify-content:space-between;gap:12px;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 0;background:transparent;color:var(--ink);text-align:left;cursor:pointer}.mini-row:hover{background:#f8fafc}.mini-row span:last-child{text-align:right;white-space:nowrap}.mini-row small{display:block;margin-top:2px}.mini-note{margin:-7px 0 7px;padding-bottom:8px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.4}.rules-panel{padding:16px 18px}.rules-panel li{margin-bottom:8px;line-height:1.45}.empty{padding:24px;color:var(--muted)}@media(max-width:980px){.status-band,.controls,.content-grid{grid-template-columns:1fr}.status-band>div{border-right:0;border-bottom:1px solid var(--line)}.status-band>div:last-child{border-bottom:0}}
+:root{--ink:#17202a;--muted:#64748b;--line:#d7dee8;--paper:#fff;--band:#f4f7fb;--green:#157347;--gold:#996515;--red:#b42318;--blue:#1d4ed8}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#eef3f8}button,select{font:inherit}header{padding:22px 28px;color:#fff;background:#123447}h1,h2,p{margin-top:0}h1{margin-bottom:0;font-size:28px}.eyebrow{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#bde8ef}main{max-width:1480px;margin:0 auto;padding:20px}.status-band{display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:16px;border:1px solid var(--line);background:var(--paper)}.status-band>div{padding:16px;border-right:1px solid var(--line)}.status-band>div:last-child{border-right:0}.label,small,.muted{color:var(--muted)}.label{display:block;margin-bottom:4px;font-size:12px;font-weight:700;text-transform:uppercase}.status-band strong{display:block;font-size:24px}.controls{display:grid;grid-template-columns:180px 160px minmax(260px,1fr);gap:12px;margin-bottom:16px;padding:14px;border:1px solid var(--line);background:var(--band)}.field label{display:block;margin-bottom:5px;font-size:12px;font-weight:700;color:var(--muted)}.field select{width:100%;height:40px;border:1px solid var(--line);border-radius:6px;padding:0 10px;background:white}.content-grid{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;margin-bottom:16px}.rank-panel,.detail-panel,.rules-panel{border:1px solid var(--line);background:var(--paper)}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}.panel-head h2{margin:0}.panel-head button{border:1px solid var(--line);border-radius:6px;padding:8px 12px;background:var(--band);color:var(--ink);font-weight:700;cursor:pointer}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:860px}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:12px;color:var(--muted);text-transform:uppercase;background:#f8fafc}tbody tr{cursor:pointer}tbody tr:hover{background:#f5fbfc}tbody tr.selected-row{background:#e8f6f7}.rank-change{display:block;margin-top:2px;font-size:12px;font-weight:700}.rank-up{color:var(--green)}.rank-down{color:var(--red)}.rank-new{color:var(--blue)}.rank-same{color:var(--muted)}.pill{display:inline-flex;align-items:center;min-height:24px;border:0;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;white-space:nowrap;background:#e2e8f0;color:#334155}.pill.selected{background:#d1fae5;color:var(--green)}.pill.alternate{background:#fef3c7;color:var(--gold)}.pill.outside{background:#fee2e2;color:var(--red)}.pill.ethan{background:#dbeafe;color:var(--blue)}.event-list{display:flex;flex-wrap:wrap;gap:5px}.text-link{display:inline;border:0;border-radius:0;padding:0;background:transparent;color:inherit;font-weight:inherit;text-align:left;cursor:pointer}.event-link:hover,.text-link:hover{text-decoration:underline}.detail-body{padding:16px}.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}.metric{padding:10px;border:1px solid var(--line);background:#f8fafc}.metric strong{display:block;font-size:20px}.swim-card{padding:10px 0;border-top:1px solid var(--line)}.swim-card:first-of-type{border-top:0}.swim-card h3{margin:0 0 5px;font-size:15px}.swim-meta{color:var(--muted);font-size:13px;line-height:1.45}.mini-table{border-top:1px solid var(--line)}.mini-row{display:flex;width:100%;justify-content:space-between;gap:12px;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 0;background:transparent;color:var(--ink);text-align:left;cursor:pointer}.mini-row:hover{background:#f8fafc}.mini-row span:last-child{text-align:right;white-space:nowrap}.mini-row small{display:block;margin-top:2px}.mini-note{margin:-7px 0 7px;padding-bottom:8px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.4}.rules-panel{padding:16px 18px}.rules-panel li{margin-bottom:8px;line-height:1.45}.empty{padding:24px;color:var(--muted)}@media(max-width:980px){.status-band,.controls,.content-grid{grid-template-columns:1fr}.status-band>div{border-right:0;border-bottom:1px solid var(--line)}.status-band>div:last-child{border-bottom:0}}
 </style>
 </head>
 <body>
@@ -239,14 +291,18 @@ function groupKey(){return state.ageGroup+"|"+state.gender}
 function currentAll(){return DATA.groups[groupKey()]||[]}
 function currentRows(){return currentAll().slice(0,LIMIT)}
 function fmtDate(v){if(!v)return"date unknown";const d=new Date(v+"T12:00:00");return Number.isNaN(+d)?v:d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}
+function fmtDateTime(v){if(!v)return"--";const d=new Date(v);return Number.isNaN(+d)?v:d.toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"})}
+function rankChangeText(r){if(r.previousRank==null)return"new";if(r.rankDelta>0)return"up "+r.rankDelta;if(r.rankDelta<0)return"down "+Math.abs(r.rankDelta);return"same"}
+function rankChangeClass(r){if(r.previousRank==null)return"rank-new";if(r.rankDelta>0)return"rank-up";if(r.rankDelta<0)return"rank-down";return"rank-same"}
+function rankSummaryText(){let c=DATA.rankChanges||{};if(!c.checked)return"rank baseline starts now";if((c.changed||0)===0&&(c.new||0)===0)return"no rank changes";return(c.changed||0)+" changed, "+(c.new||0)+" new"}
 function statusClass(s){return s.startsWith("Selected")?"selected":s.startsWith("Alternate")?"alternate":"outside"}
 function setupControls(){DATA.ageGroups.forEach(g=>$("#ageGroupSelect").insertAdjacentHTML("beforeend",'<option value="'+esc(g)+'">'+esc(g)+'</option>'));DATA.genders.forEach(g=>$("#genderSelect").insertAdjacentHTML("beforeend",'<option value="'+esc(g.value)+'">'+esc(g.label)+'</option>'));$("#ageGroupSelect").value=state.ageGroup;$("#genderSelect").value=state.gender}
 function refreshSwimmerSelect(){let rows=currentRows();let opts=['<option value="">All 50 swimmers</option>'].concat(rows.map(r=>'<option value="'+esc(r.name)+'">'+esc("#"+r.rank+" "+r.name)+'</option>'));$("#swimmerSelect").innerHTML=opts.join("");$("#swimmerSelect").value=state.selected||""}
 function filteredRows(){let rows=currentRows();return state.selected?rows.filter(r=>r.name===state.selected):rows}
-function render(){refreshSwimmerSelect();let rows=filteredRows();$("#applicantCount").textContent=rows.length+" of top "+Math.min(LIMIT,currentAll().length)+" swimmers";$("#lastUpdated").textContent=DATA.lastUpdated||"--";$("#dataSource").textContent=(DATA.source||"--")+" · public";renderTable(rows);renderEthan();renderDetail()}
-function renderTable(rows){$("#rankingBody").innerHTML=rows.length?rows.map(r=>'<tr data-name="'+esc(r.name)+'" class="'+(state.detail.type==="swimmer"&&state.detail.name===r.name?"selected-row":"")+'"><td><strong>'+r.rank+'</strong></td><td><button class="text-link swimmer-link" data-name="'+esc(r.name)+'"><strong>'+esc(r.name)+'</strong></button> '+(r.name===TARGET?'<span class="pill ethan">Ethan</span>':'')+'<br><small>'+esc(r.age)+' years old</small></td><td><button class="text-link team-link" data-team="'+esc(r.team)+'">'+esc(r.team)+'</button></td><td><strong>'+(r.score>=999?"Incomplete":r.score)+'</strong><br><small>'+r.pp+' PP</small></td><td><div class="event-list">'+r.topSix.map(pill).join("")+'</div></td><td><button class="text-link tie-link" data-name="'+esc(r.name)+'">LCM AAA '+r.cuts.lcmAAA+'<br>SCY AAA '+r.cuts.scyAAA+'</button></td><td><span class="pill '+statusClass(r.status)+'">'+esc(r.status)+'</span></td></tr>').join(""):'<tr><td colspan="7"><div class="empty">No swimmers are loaded for this age group and gender yet.</div></td></tr>'}
+function render(){refreshSwimmerSelect();let rows=filteredRows();$("#applicantCount").textContent=rows.length+" of top "+Math.min(LIMIT,currentAll().length)+" swimmers";$("#lastUpdated").textContent=fmtDateTime(DATA.lastLoadedAt||DATA.lastUpdated||DATA.generatedAt);$("#dataSource").textContent=rankSummaryText()+" · "+(DATA.source||"--")+" · public";renderTable(rows);renderEthan();renderDetail()}
+function renderTable(rows){$("#rankingBody").innerHTML=rows.length?rows.map(r=>'<tr data-name="'+esc(r.name)+'" class="'+(state.detail.type==="swimmer"&&state.detail.name===r.name?"selected-row":"")+'"><td><strong>'+r.rank+'</strong><span class="rank-change '+rankChangeClass(r)+'">'+rankChangeText(r)+'</span></td><td><button class="text-link swimmer-link" data-name="'+esc(r.name)+'"><strong>'+esc(r.name)+'</strong></button> '+(r.name===TARGET?'<span class="pill ethan">Ethan</span>':'')+'<br><small>'+esc(r.age)+' years old</small></td><td><button class="text-link team-link" data-team="'+esc(r.team)+'">'+esc(r.team)+'</button></td><td><strong>'+(r.score>=999?"Incomplete":r.score)+'</strong><br><small>'+r.pp+' PP</small></td><td><div class="event-list">'+r.topSix.map(pill).join("")+'</div></td><td><button class="text-link tie-link" data-name="'+esc(r.name)+'">LCM AAA '+r.cuts.lcmAAA+'<br>SCY AAA '+r.cuts.scyAAA+'</button></td><td><span class="pill '+statusClass(r.status)+'">'+esc(r.status)+'</span></td></tr>').join(""):'<tr><td colspan="7"><div class="empty">No swimmers are loaded for this age group and gender yet.</div></td></tr>'}
 function pill(e){return '<button class="pill event-link" data-event="'+esc(e.event)+'">'+esc(e.event)+' #'+e.rank+' · '+esc(e.swim.time)+' · '+fmtDate(e.swim.date)+'</button>'}
-function renderEthan(){let ethan=(DATA.groups["11-12|M"]||[]).find(r=>r.name===TARGET);if(!ethan){$("#targetRank").textContent="--";$("#targetRankStatus").textContent="not loaded";$("#targetScore").textContent="--";return}$("#targetRank").textContent="#"+ethan.rank;$("#targetRankStatus").textContent=ethan.status+" · 11-12 Male · "+ethan.topSix.length+"/6 scoring events";$("#targetScore").textContent=ethan.score>=999?"Incomplete":ethan.score}
+function renderEthan(){let ethan=(DATA.groups["11-12|M"]||[]).find(r=>r.name===TARGET);if(!ethan){$("#targetRank").textContent="--";$("#targetRankStatus").textContent="not loaded";$("#targetScore").textContent="--";return}$("#targetRank").textContent="#"+ethan.rank;$("#targetRankStatus").textContent=ethan.status+" · "+rankChangeText(ethan)+" · 11-12 Male · "+ethan.topSix.length+"/6 scoring events";$("#targetScore").textContent=ethan.score>=999?"Incomplete":ethan.score}
 function renderDetail(){if(state.detail.type==="team")return renderTeam(state.detail.team);if(state.detail.type==="event")return renderEvent(state.detail.event);if(state.detail.type==="tie")return renderTie(state.detail.name);renderSwimmer(state.detail.name||TARGET)}
 function findSwimmer(name){return currentAll().find(x=>x.name===name)||(DATA.groups["11-12|M"]||[]).find(x=>x.name===name)||currentRows()[0]}
 function renderSwimmer(name){let r=findSwimmer(name);if(!r){$("#detailTitle").textContent="Swimmer Detail";$("#detailBody").innerHTML='<p class="muted">No swimmer selected.</p>';return}$("#detailTitle").textContent=r.name;let top=new Set(r.topSix.map(e=>e.event));let events=r.events.slice().sort((a,b)=>(a.rank??999)-(b.rank??999)||DATA.eventOrder.indexOf(a.event)-DATA.eventOrder.indexOf(b.event));$("#detailBody").innerHTML=metrics(r)+'<h3>Zone Ranking Events</h3><p class="muted">One best qualifying LCM time per event, ordered from this swimmer\\'s strongest event rank to weakest.</p>'+events.map(e=>eventCard(e,top.has(e.event))).join("")}
