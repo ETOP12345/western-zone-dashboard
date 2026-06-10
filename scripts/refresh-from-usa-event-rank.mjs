@@ -18,6 +18,7 @@ const PERSON_DS = "localhost_aPublicIAAaPersonIAAaSearch";
 const REQUEST_TIMEOUT_MS = 75000;
 const REQUEST_ATTEMPTS = 3;
 const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
+const SCY_ROWS_PER_EVENT = Number(process.env.EVENT_RANK_SCY_ROWS_PER_EVENT || 250);
 const PERSON_ROWS_PER_PAGE = 500;
 const QUALIFYING_START = "2025-07-01";
 const ZONE_QUALIFYING_END = "2026-07-25";
@@ -35,22 +36,38 @@ const GENDERS = [
   { value: "M", label: "Male", usa: "Male" },
   { value: "F", label: "Female", usa: "Female" }
 ];
-const EVENT_CODES = [
-  ["50 Free", "50 FR LCM"],
-  ["100 Free", "100 FR LCM"],
-  ["200 Free", "200 FR LCM"],
-  ["50 Back", "50 BK LCM"],
-  ["100 Back", "100 BK LCM"],
-  ["200 Back", "200 BK LCM"],
-  ["50 Breast", "50 BR LCM"],
-  ["100 Breast", "100 BR LCM"],
-  ["200 Breast", "200 BR LCM"],
-  ["50 Fly", "50 FL LCM"],
-  ["100 Fly", "100 FL LCM"],
-  ["200 Fly", "200 FL LCM"],
-  ["200 IM", "200 IM LCM"],
-  ["400 Free", "400 FR LCM"],
-  ["400 IM", "400 IM LCM"]
+const EVENT_QUERIES = [
+  ["50 Free", "LCM", "50 FR LCM", ROWS_PER_EVENT],
+  ["100 Free", "LCM", "100 FR LCM", ROWS_PER_EVENT],
+  ["200 Free", "LCM", "200 FR LCM", ROWS_PER_EVENT],
+  ["50 Back", "LCM", "50 BK LCM", ROWS_PER_EVENT],
+  ["100 Back", "LCM", "100 BK LCM", ROWS_PER_EVENT],
+  ["200 Back", "LCM", "200 BK LCM", ROWS_PER_EVENT],
+  ["50 Breast", "LCM", "50 BR LCM", ROWS_PER_EVENT],
+  ["100 Breast", "LCM", "100 BR LCM", ROWS_PER_EVENT],
+  ["200 Breast", "LCM", "200 BR LCM", ROWS_PER_EVENT],
+  ["50 Fly", "LCM", "50 FL LCM", ROWS_PER_EVENT],
+  ["100 Fly", "LCM", "100 FL LCM", ROWS_PER_EVENT],
+  ["200 Fly", "LCM", "200 FL LCM", ROWS_PER_EVENT],
+  ["200 IM", "LCM", "200 IM LCM", ROWS_PER_EVENT],
+  ["400 Free", "LCM", "400 FR LCM", ROWS_PER_EVENT],
+  ["400 IM", "LCM", "400 IM LCM", ROWS_PER_EVENT],
+  ["50 Free", "SCY", "50 FR SCY", SCY_ROWS_PER_EVENT],
+  ["100 Free", "SCY", "100 FR SCY", SCY_ROWS_PER_EVENT],
+  ["200 Free", "SCY", "200 FR SCY", SCY_ROWS_PER_EVENT],
+  ["500 Free", "SCY", "500 FR SCY", SCY_ROWS_PER_EVENT],
+  ["50 Back", "SCY", "50 BK SCY", SCY_ROWS_PER_EVENT],
+  ["100 Back", "SCY", "100 BK SCY", SCY_ROWS_PER_EVENT],
+  ["200 Back", "SCY", "200 BK SCY", SCY_ROWS_PER_EVENT],
+  ["50 Breast", "SCY", "50 BR SCY", SCY_ROWS_PER_EVENT],
+  ["100 Breast", "SCY", "100 BR SCY", SCY_ROWS_PER_EVENT],
+  ["200 Breast", "SCY", "200 BR SCY", SCY_ROWS_PER_EVENT],
+  ["50 Fly", "SCY", "50 FL SCY", SCY_ROWS_PER_EVENT],
+  ["100 Fly", "SCY", "100 FL SCY", SCY_ROWS_PER_EVENT],
+  ["200 Fly", "SCY", "200 FL SCY", SCY_ROWS_PER_EVENT],
+  ["100 IM", "SCY", "100 IM SCY", SCY_ROWS_PER_EVENT],
+  ["200 IM", "SCY", "200 IM SCY", SCY_ROWS_PER_EVENT],
+  ["400 IM", "SCY", "400 IM SCY", SCY_ROWS_PER_EVENT]
 ];
 
 const startedAt = new Date().toISOString();
@@ -67,9 +84,9 @@ for (const ageGroup of AGE_GROUPS) {
   for (const gender of GENDERS) {
     const groupKey = `${ageGroup.label}|${gender.value}`;
     rowsByGroup[groupKey] = {};
-    for (const [event, eventCode] of EVENT_CODES) {
-      const rows = await getEventRankRows({ widget, token, ageGroup, gender, event, eventCode });
-      rowsByGroup[groupKey][event] = rows.length;
+    for (const [event, course, eventCode, rowLimit] of EVENT_QUERIES) {
+      const rows = await getEventRankRows({ widget, token, ageGroup, gender, eventCode, course, rowLimit });
+      rowsByGroup[groupKey][`${course} ${event}`] = rows.length;
       for (const row of rows) {
         const personKey = Number(row[12]?.data ?? row[12]?.text);
         if (!personKey) continue;
@@ -94,14 +111,14 @@ for (const ageGroup of AGE_GROUPS) {
         const swimmer = swimmersByKey.get(key);
         swimmer.age = currentAge;
         if (!swimmer.team && person?.team) swimmer.team = person.team;
-        const swim = eventRankRowToSwim(row, event, ageAtMeet);
+        const swim = eventRankRowToSwim(row, event, course, ageAtMeet);
         const existingIndex = swimmer.swims.findIndex(s => s.event === swim.event && s.course === swim.course);
         if (existingIndex === -1 || toSeconds(swim.time) < toSeconds(swimmer.swims[existingIndex].time)) {
           if (existingIndex === -1) swimmer.swims.push(swim);
           else swimmer.swims[existingIndex] = swim;
         }
       }
-      console.log(`${groupKey} ${event}: ${rows.length}`);
+      console.log(`${groupKey} ${course} ${event}: ${rows.length}`);
       await delay(80);
     }
   }
@@ -118,7 +135,7 @@ const payload = {
   lastUpdated: new Date().toISOString().slice(0, 10),
   notes: [
     "Refreshed from USA Swimming Top Times / Event Rank Search.",
-    `Filters: PN LSC, LCM events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,
+    `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,
     "Dashboard age groups use current swimmer ages from USA Swimming Person Search, not age at meet.",
     `Collected up to ${ROWS_PER_EVENT} ranked rows per event to build top-50 all-around rankings per age group and gender.`
   ],
@@ -133,6 +150,7 @@ await fs.writeFile(STATUS_JSON, JSON.stringify({
   source: payload.source,
   swimmers: swimmers.length,
   rowsPerEvent: ROWS_PER_EVENT,
+  scyRowsPerEvent: SCY_ROWS_PER_EVENT,
   groups: rowsByGroup
 }, null, 2));
 
@@ -194,25 +212,25 @@ async function getCurrentAges(token) {
   return people;
 }
 
-async function getEventRankRows({ widget, token, ageGroup, gender, eventCode }) {
+async function getEventRankRows({ widget, token, ageGroup, gender, eventCode, course, rowLimit }) {
   const metadata = [
     ...baseColumns,
     column("SeasonCalendar", "CalendarDate", "datetime", "Swim Date", "[SeasonCalendar.CalendarDate (Calendar)]"),
     scope("EventCompetitionCategory", "TypeName", "text", { equals: gender.usa }, "Gender"),
     scope("BestTimes", "AgeAtMeetKey", "numeric", { from: ageGroup.from, to: ageGroup.to }, "Age"),
-    scope("SwimEvent", "CourseCode", "text", { equals: "LCM" }, "Course"),
+    scope("SwimEvent", "CourseCode", "text", { equals: course }, "Course"),
     scope("SwimEvent", "EventCode", "text", { equals: eventCode }, "Event"),
     scope("OrgUnit", "Level3Code", "text", { equals: "PN" }, "LSC"),
     scope("SeasonCalendar", "CalendarDate", "datetime", { from: QUALIFYING_START, to: QUALIFYING_END }, "Swim Date", "[SeasonCalendar.CalendarDate (Calendar)]")
   ];
-  const result = await jaql(EVENT_RANK_DS, widget.datasource, metadata, token, ROWS_PER_EVENT, 0);
+  const result = await jaql(EVENT_RANK_DS, widget.datasource, metadata, token, rowLimit, 0);
   return result.values || [];
 }
 
-function eventRankRowToSwim(row, event, ageAtMeet) {
+function eventRankRowToSwim(row, event, course, ageAtMeet) {
   return {
     event,
-    course: "LCM",
+    course,
     time: cleanTime(row[1]?.text),
     date: parseEventRankDate(row[15]?.text || row[15]?.data),
     meet: row[8]?.text || "",
