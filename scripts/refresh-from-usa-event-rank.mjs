@@ -21,6 +21,8 @@ const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
 const SCY_ROWS_PER_EVENT = Number(process.env.EVENT_RANK_SCY_ROWS_PER_EVENT || 250);
 const PERSON_ROWS_PER_PAGE = 500;
 const POWER_POINT_KEY_BATCH_SIZE = 500;
+const POWER_POINT_MIN_BATCH_SIZE = 25;
+const POWER_POINT_BATCH_ATTEMPTS = 4;
 const QUALIFYING_START = "2025-07-01";
 const ZONE_QUALIFYING_END = "2026-07-25";
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -260,17 +262,7 @@ async function hydratePowerPoints(swimmers, datasource, token) {
   const points = new Map();
   for (let index = 0; index < keys.length; index += POWER_POINT_KEY_BATCH_SIZE) {
     const batch = keys.slice(index, index + POWER_POINT_KEY_BATCH_SIZE);
-    const metadata = [
-      column("UsasSwimTime", "UsasSwimTimeKey", "numeric", "UsasSwimTimeKey"),
-      column("UsasSwimTime", "PowerPoints", "numeric", "Power Points"),
-      scope("UsasSwimTime", "UsasSwimTimeKey", "numeric", { members: batch }, "UsasSwimTimeKey")
-    ];
-    const result = await jaql(EVENT_RANK_DS, datasource, metadata, token, batch.length, 0);
-    for (const row of result.values || []) {
-      const key = Number(row[0]?.data ?? row[0]?.text);
-      const value = Number(row[1]?.data ?? row[1]?.text);
-      if (key && Number.isFinite(value)) points.set(key, value);
-    }
+    await loadPowerPointBatch({ batch, datasource, token, points });
     console.log(`Power points: ${Math.min(index + batch.length, keys.length)}/${keys.length} keys checked`);
     await delay(80);
   }
@@ -285,6 +277,40 @@ async function hydratePowerPoints(swimmers, datasource, token) {
     }
   }
   return { total: keys.length, resolved: points.size, assigned };
+}
+
+async function loadPowerPointBatch({ batch, datasource, token, points }) {
+  const metadata = [
+    column("UsasSwimTime", "UsasSwimTimeKey", "numeric", "UsasSwimTimeKey"),
+    column("UsasSwimTime", "PowerPoints", "numeric", "Power Points"),
+    scope("UsasSwimTime", "UsasSwimTimeKey", "numeric", { members: batch }, "UsasSwimTimeKey")
+  ];
+  let lastError = null;
+  for (let attempt = 1; attempt <= POWER_POINT_BATCH_ATTEMPTS; attempt++) {
+    try {
+      const result = await jaql(EVENT_RANK_DS, datasource, metadata, token, batch.length, 0);
+      for (const row of result.values || []) {
+        const key = Number(row[0]?.data ?? row[0]?.text);
+        const value = Number(row[1]?.data ?? row[1]?.text);
+        if (key && Number.isFinite(value)) points.set(key, value);
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < POWER_POINT_BATCH_ATTEMPTS) {
+        console.warn(`Power point batch of ${batch.length} failed on attempt ${attempt}; retrying.`);
+        await delay(1500 * attempt);
+      }
+    }
+  }
+  if (batch.length > POWER_POINT_MIN_BATCH_SIZE) {
+    const midpoint = Math.ceil(batch.length / 2);
+    console.warn(`Power point batch of ${batch.length} failed; retrying as smaller batches.`);
+    await loadPowerPointBatch({ batch: batch.slice(0, midpoint), datasource, token, points });
+    await loadPowerPointBatch({ batch: batch.slice(midpoint), datasource, token, points });
+    return;
+  }
+  console.warn(`Power point batch of ${batch.length} failed after retries; leaving those swims with 0 PP. ${lastError?.message || lastError}`);
 }
 
 function column(table, columnName, datatype, title = columnName, dim = `[${table}.${columnName}]`) {
