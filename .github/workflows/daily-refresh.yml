@@ -27,6 +27,9 @@ jobs:
       - name: Rebuild public dashboard
         run: node scripts/build-public-lite.mjs
 
+      - name: Validate age groups before publish
+        run: node scripts/validate-age-groups.mjs
+
       - name: Commit refreshed dashboard
         run: |
           git config user.name "github-actions[bot]"

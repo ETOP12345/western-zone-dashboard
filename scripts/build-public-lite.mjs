@@ -59,6 +59,7 @@ const compact = {
   eventOrder: EVENT_ORDER,
   groups
 };
+validateAgeGroups(compact.groups);
 
 await fs.writeFile(OUTPUT, renderHtml(compact));
 console.log(`Wrote ${OUTPUT}`);
@@ -110,13 +111,22 @@ function rankIdentity(row) {
 }
 
 function normalizeSwimmer(swimmer) {
+  const age = inferredCurrentAge(swimmer);
   return {
     ...swimmer,
-    age: Number(swimmer.age || 0),
+    age,
     gender: normalizeGender(swimmer.gender),
-    ageGroup: ageGroupFor(Number(swimmer.age || 0)),
+    ageGroup: ageGroupFor(age),
     swims: swimmer.swims || []
   };
+}
+
+function inferredCurrentAge(swimmer) {
+  const ages = [Number(swimmer.age) || 0];
+  for (const swim of swimmer.swims || []) {
+    ages.push(Number(swim.ageAtMeet) || 0);
+  }
+  return Math.max(...ages);
 }
 
 function normalizeGender(value) {
@@ -135,6 +145,22 @@ function ageGroupFor(age) {
 
 function groupKey(ageGroup, gender) {
   return `${ageGroup}|${gender}`;
+}
+
+function validateAgeGroups(groups) {
+  const errors = [];
+  for (const [key, rows] of Object.entries(groups)) {
+    const [ageGroup, gender] = key.split("|");
+    for (const row of rows) {
+      const expected = ageGroupFor(Number(row.age) || 0);
+      if (expected !== ageGroup) {
+        errors.push(`${row.name} age ${row.age} is in ${key}; expected ${expected}|${gender}`);
+      }
+    }
+  }
+  if (errors.length) {
+    throw new Error(`Age-group validation failed before publish:\n${errors.slice(0, 25).join("\n")}`);
+  }
 }
 
 function toSeconds(value) {

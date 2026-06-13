@@ -95,7 +95,7 @@ for (const ageGroup of AGE_GROUPS) {
         if (!personKey) continue;
         const person = currentAges.get(personKey);
         const ageAtMeet = Number(row[4]?.data ?? row[4]?.text) || null;
-        const currentAge = person?.age || ageAtMeet || ageGroup.to;
+        const currentAge = inferredCurrentAge(person?.age, ageAtMeet, ageGroup.to);
         const key = `${personKey}|${gender.value}`;
         if (!swimmersByKey.has(key)) {
           swimmersByKey.set(key, {
@@ -112,7 +112,7 @@ for (const ageGroup of AGE_GROUPS) {
           });
         }
         const swimmer = swimmersByKey.get(key);
-        swimmer.age = currentAge;
+        swimmer.age = Math.max(Number(swimmer.age) || 0, currentAge);
         if (!swimmer.team && person?.team) swimmer.team = person.team;
         const swim = eventRankRowToSwim(row, event, course, ageAtMeet);
         const existingIndex = swimmer.swims.findIndex(s => s.event === swim.event && s.course === swim.course);
@@ -348,6 +348,10 @@ function parseEventRankDate(value) {
 
 function minIsoDate(a, b) {
   return a < b ? a : b;
+}
+
+function inferredCurrentAge(...ages) {
+  return Math.max(0, ...ages.map(age => Number(age) || 0));
 }
 
 function toSeconds(value) {
