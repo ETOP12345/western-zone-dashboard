@@ -4,10 +4,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const INPUT = path.join(ROOT, "data", "swimmers.json");
-const OUTPUT = process.env.PUBLIC_DASHBOARD_OUTPUT ||
-  (path.basename(ROOT) === "western-zone-dashboard"
-    ? path.resolve(ROOT, "..", "western-zone-dashboard-public", "index.html")
-    : path.join(ROOT, "index.html"));
+const OUTPUT = process.env.PUBLIC_DASHBOARD_OUTPUT || path.join(ROOT, "index.html");
 const TARGET = "Ethan Wang";
 const DEFAULT_AGE_GROUP = "11-12";
 const DEFAULT_GENDER = "M";
