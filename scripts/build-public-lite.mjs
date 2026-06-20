@@ -104,6 +104,7 @@ function summarizeRankChanges(groups) {
 }
 
 function rankIdentity(row) {
+  if (row.personKey) return `${row.personKey}|${row.ageGroup}|${row.gender}`;
   return `${row.name}|${row.team}|${row.ageGroup}|${row.gender}`;
 }
 
@@ -263,7 +264,9 @@ function tieType(swim) {
 
 function toCompactSwimmer(r) {
   return {
+    personKey: r.personKey || null,
     name: r.name,
+    sourcePersonName: r.sourcePersonName || r.name,
     team: r.team,
     age: r.age,
     gender: r.gender,

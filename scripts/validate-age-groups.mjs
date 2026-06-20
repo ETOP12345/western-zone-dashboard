@@ -13,9 +13,23 @@ if (!match) throw new Error("Could not find embedded dashboard DATA in index.htm
 const dashboard = JSON.parse(match[1]);
 
 const errors = [];
+const sourceIndex = new Map();
 for (const swimmer of source.swimmers || []) {
   const inferredAge = inferredCurrentAge(swimmer);
   const sourceAge = Number(swimmer.age) || 0;
+  const expected = {
+    personKey: swimmer.personKey ? String(swimmer.personKey) : "",
+    name: swimmer.name || "",
+    sourcePersonName: swimmer.sourcePersonName || "",
+    team: swimmer.team || "",
+    gender: normalizeGender(swimmer.gender),
+    age: inferredAge,
+    ageGroup: ageGroupFor(inferredAge)
+  };
+  addSourceIdentity(sourceIndex, `person:${expected.personKey}`, expected);
+  addSourceIdentity(sourceIndex, `name-team:${identityPart(expected.name)}|${identityPart(expected.team)}`, expected);
+  addSourceIdentity(sourceIndex, `name-team:${identityPart(expected.sourcePersonName)}|${identityPart(expected.team)}`, expected);
+
   if (ageGroupFor(inferredAge) !== ageGroupFor(sourceAge)) {
     errors.push(`${swimmer.name} source age is ${swimmer.age}, but swim age-at-meet implies ${inferredAge} (${ageGroupFor(inferredAge)}).`);
   }
@@ -27,6 +41,21 @@ for (const [key, rows] of Object.entries(dashboard.groups || {})) {
     const expected = ageGroupFor(Number(row.age) || 0);
     if (expected !== ageGroup) {
       errors.push(`${row.name} age ${row.age} is published in ${key}; expected ${expected}|${gender}.`);
+    }
+
+    const currentSource = findSourceForPublishedRow(sourceIndex, row);
+    if (!currentSource) {
+      errors.push(`${row.name} (${row.team}) is published in ${key}, but no matching swimmer exists in current data/swimmers.json.`);
+      continue;
+    }
+    if (Number(row.age) !== currentSource.age) {
+      errors.push(`${row.name} (${row.team}) is published as age ${row.age}, but current source age is ${currentSource.age}.`);
+    }
+    if (ageGroup !== currentSource.ageGroup) {
+      errors.push(`${row.name} (${row.team}) is published in ${key}, but current source age ${currentSource.age} belongs in ${currentSource.ageGroup}|${currentSource.gender}.`);
+    }
+    if (normalizeGender(row.gender) !== currentSource.gender || gender !== currentSource.gender) {
+      errors.push(`${row.name} (${row.team}) is published in gender ${gender}, but current source gender is ${currentSource.gender}.`);
     }
   }
 }
@@ -46,6 +75,40 @@ function inferredCurrentAge(swimmer) {
     ages.push(Number(swim.ageAtMeet) || 0);
   }
   return Math.max(...ages);
+}
+
+function addSourceIdentity(index, key, swimmer) {
+  if (!key || key.endsWith(":") || key.includes(":|") || key.endsWith("|")) return;
+  if (index.has(key) && index.get(key) === null) return;
+  const existing = index.get(key);
+  if (!existing) {
+    index.set(key, swimmer);
+    return;
+  }
+  if (existing.personKey !== swimmer.personKey) index.set(key, null);
+}
+
+function findSourceForPublishedRow(index, row) {
+  const identities = [];
+  if (row.personKey) identities.push(`person:${row.personKey}`);
+  identities.push(`name-team:${identityPart(row.name)}|${identityPart(row.team)}`);
+  if (row.sourcePersonName) identities.push(`name-team:${identityPart(row.sourcePersonName)}|${identityPart(row.team)}`);
+
+  for (const key of identities) {
+    const match = index.get(key);
+    if (match) return match;
+  }
+  return null;
+}
+
+function identityPart(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeGender(value) {
+  const raw = String(value || "").toUpperCase();
+  if (raw.startsWith("F")) return "F";
+  return "M";
 }
 
 function ageGroupFor(age) {
