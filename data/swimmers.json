@@ -1,9 +1,9 @@
 {
   "source": "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
-  "lastUpdated": "2026-06-25T16:23:01.453Z",
+  "lastUpdated": "2026-06-26T16:15:25.457Z",
   "notes": [
     "Refreshed from USA Swimming Top Times / Event Rank Search.",
-    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-06-25, age-at-meet group, and gender.",
+    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-06-26, age-at-meet group, and gender.",
     "Dashboard age groups use current swimmer ages from USA Swimming Person Search, not age at meet.",
     "Power points loaded from USA Swimming UsasSwimTime.PowerPoints for 0 of 0 swim-time keys.",
     "Collected up to 120 ranked rows per event to build top-50 all-around rankings per age group and gender."
