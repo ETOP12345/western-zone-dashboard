@@ -5,6 +5,9 @@ import path from "node:path";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const INDEX_HTML = path.join(ROOT, "index.html");
 const DATA_JSON = path.join(ROOT, "data", "swimmers.json");
+const MIN_SOURCE_SWIMMERS = Number(process.env.MIN_SOURCE_SWIMMERS || 500);
+const MIN_PUBLISHED_ROWS = Number(process.env.MIN_PUBLISHED_ROWS || 100);
+const REQUIRED_GROUPS = ["11-12|M"];
 
 const source = JSON.parse(await fs.readFile(DATA_JSON, "utf8"));
 const html = await fs.readFile(INDEX_HTML, "utf8");
@@ -13,8 +16,25 @@ if (!match) throw new Error("Could not find embedded dashboard DATA in index.htm
 const dashboard = JSON.parse(match[1]);
 
 const errors = [];
+const sourceSwimmers = source.swimmers || [];
+if (sourceSwimmers.length < MIN_SOURCE_SWIMMERS) {
+  errors.push(`Current data/swimmers.json has only ${sourceSwimmers.length} swimmers; expected at least ${MIN_SOURCE_SWIMMERS}. Refusing to publish likely-empty refresh output.`);
+}
+
+const publishedRows = Object.values(dashboard.groups || {}).reduce((sum, rows) => sum + rows.length, 0);
+if (publishedRows < MIN_PUBLISHED_ROWS) {
+  errors.push(`Published dashboard has only ${publishedRows} swimmer rows; expected at least ${MIN_PUBLISHED_ROWS}. Refusing to publish likely-empty dashboard.`);
+}
+
+for (const groupKey of REQUIRED_GROUPS) {
+  const rows = dashboard.groups?.[groupKey] || [];
+  if (!rows.length) {
+    errors.push(`Required dashboard group ${groupKey} has no swimmers.`);
+  }
+}
+
 const sourceIndex = new Map();
-for (const swimmer of source.swimmers || []) {
+for (const swimmer of sourceSwimmers) {
   const inferredAge = inferredCurrentAge(swimmer);
   const sourceAge = Number(swimmer.age) || 0;
   const expected = {

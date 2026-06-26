@@ -19,6 +19,8 @@ const REQUEST_TIMEOUT_MS = 75000;
 const REQUEST_ATTEMPTS = 3;
 const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
 const SCY_ROWS_PER_EVENT = Number(process.env.EVENT_RANK_SCY_ROWS_PER_EVENT || 250);
+const MIN_REFRESH_SWIMMERS = Number(process.env.MIN_REFRESH_SWIMMERS || 500);
+const MIN_REFRESH_EVENT_ROWS = Number(process.env.MIN_REFRESH_EVENT_ROWS || 500);
 const PERSON_ROWS_PER_PAGE = 500;
 const POWER_POINT_KEY_BATCH_SIZE = 500;
 const POWER_POINT_MIN_BATCH_SIZE = 25;
@@ -133,6 +135,23 @@ const swimmers = [...swimmersByKey.values()].sort((a, b) =>
   a.name.localeCompare(b.name)
 );
 const powerPointStats = await hydratePowerPoints(swimmers, widget.datasource, token);
+const totalEventRows = sumEventRows(rowsByGroup);
+if (swimmers.length < MIN_REFRESH_SWIMMERS || totalEventRows < MIN_REFRESH_EVENT_ROWS) {
+  const message = `USA Event Rank refresh returned only ${swimmers.length} swimmers and ${totalEventRows} event rows; expected at least ${MIN_REFRESH_SWIMMERS} swimmers and ${MIN_REFRESH_EVENT_ROWS} event rows. Refusing to overwrite the last good dashboard data.`;
+  await fs.writeFile(STATUS_JSON, JSON.stringify({
+    checkedAt: startedAt,
+    finishedAt: new Date().toISOString(),
+    status: "failed-empty-refresh",
+    source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
+    swimmers: swimmers.length,
+    rowsPerEvent: ROWS_PER_EVENT,
+    scyRowsPerEvent: SCY_ROWS_PER_EVENT,
+    powerPoints: powerPointStats,
+    groups: rowsByGroup,
+    error: message
+  }, null, 2));
+  throw new Error(message);
+}
 
 const payload = {
   source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
@@ -161,6 +180,14 @@ await fs.writeFile(STATUS_JSON, JSON.stringify({
 }, null, 2));
 
 console.log(`USA Event Rank refresh: ${swimmers.length} unique swimmers loaded.`);
+
+function sumEventRows(groups) {
+  let total = 0;
+  for (const events of Object.values(groups)) {
+    for (const count of Object.values(events)) total += Number(count) || 0;
+  }
+  return total;
+}
 
 async function getSisenseToken() {
   const security = await postJson(`${SECURITY_URL}/Auth/GetSecurityInfoForSubId`, {
