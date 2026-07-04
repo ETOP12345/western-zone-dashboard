@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Save previous dashboard snapshot
+        run: cp index.html /tmp/wz-previous-index.html
+
       - name: Refresh USA Swimming Event Rank data
         run: node scripts/refresh-from-usa-event-rank.mjs
 
@@ -41,3 +44,17 @@ jobs:
             git commit -m "Daily USA Swimming refresh"
             git push
           fi
+
+      - name: Email Ethan rank changes
+        env:
+          PREVIOUS_DASHBOARD: /tmp/wz-previous-index.html
+          CURRENT_DASHBOARD: index.html
+          REPORT_URL: https://jialiu103.github.io/western-zone-dashboard/
+          EMAIL_TO: liujiauestc@gmail.com
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: node scripts/notify-ethan-rank-change.mjs

@@ -7,24 +7,12 @@ const DATA_DIR = path.join(ROOT, "data");
 const SWIMMERS_JSON = path.join(DATA_DIR, "swimmers.json");
 const STATUS_JSON = path.join(DATA_DIR, "usa-event-rank-status.json");
 
-const SECURITY_URL = "https://security-api.usaswimming.org/security";
-const SISENSE_URL = "https://usaswimming.sisense.com";
-const EVENT_RANK_DASHBOARD = "66d20272b96443003380a50b";
-const EVENT_RANK_WIDGET = "66d20272b96443003380a50d";
-const EVENT_RANK_DS = "localhost_aUSAIAAaSwimmingIAAaTimesIAAaElasticube";
-const PERSON_DASHBOARD = "66034c9773fdb1003f76559e";
-const PERSON_WIDGET = "66034c9f73fdb1003f7655a0";
-const PERSON_DS = "localhost_aPublicIAAaPersonIAAaSearch";
+const TIMES_API = "https://times-api.usaswimming.org/swims";
 const REQUEST_TIMEOUT_MS = 75000;
 const REQUEST_ATTEMPTS = 3;
-const ROWS_PER_EVENT = Number(process.env.EVENT_RANK_ROWS_PER_EVENT || 120);
-const SCY_ROWS_PER_EVENT = Number(process.env.EVENT_RANK_SCY_ROWS_PER_EVENT || 250);
+const POST_ATTEMPTS = 5;
 const MIN_REFRESH_SWIMMERS = Number(process.env.MIN_REFRESH_SWIMMERS || 500);
 const MIN_REFRESH_EVENT_ROWS = Number(process.env.MIN_REFRESH_EVENT_ROWS || 500);
-const PERSON_ROWS_PER_PAGE = 500;
-const POWER_POINT_KEY_BATCH_SIZE = 500;
-const POWER_POINT_MIN_BATCH_SIZE = 25;
-const POWER_POINT_BATCH_ATTEMPTS = 4;
 const QUALIFYING_START = "2025-07-01";
 const ZONE_QUALIFYING_END = "2026-07-25";
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -38,85 +26,67 @@ const AGE_GROUPS = [
   { label: "17-18", from: 17, to: 18 }
 ];
 const GENDERS = [
-  { value: "M", label: "Male", usa: "Male" },
-  { value: "F", label: "Female", usa: "Female" }
+  { value: "M", label: "Male", topTimesId: 1 },
+  { value: "F", label: "Female", topTimesId: 2 }
 ];
 const EVENT_QUERIES = [
-  ["50 Free", "LCM", "50 FR LCM", ROWS_PER_EVENT],
-  ["100 Free", "LCM", "100 FR LCM", ROWS_PER_EVENT],
-  ["200 Free", "LCM", "200 FR LCM", ROWS_PER_EVENT],
-  ["50 Back", "LCM", "50 BK LCM", ROWS_PER_EVENT],
-  ["100 Back", "LCM", "100 BK LCM", ROWS_PER_EVENT],
-  ["200 Back", "LCM", "200 BK LCM", ROWS_PER_EVENT],
-  ["50 Breast", "LCM", "50 BR LCM", ROWS_PER_EVENT],
-  ["100 Breast", "LCM", "100 BR LCM", ROWS_PER_EVENT],
-  ["200 Breast", "LCM", "200 BR LCM", ROWS_PER_EVENT],
-  ["50 Fly", "LCM", "50 FL LCM", ROWS_PER_EVENT],
-  ["100 Fly", "LCM", "100 FL LCM", ROWS_PER_EVENT],
-  ["200 Fly", "LCM", "200 FL LCM", ROWS_PER_EVENT],
-  ["200 IM", "LCM", "200 IM LCM", ROWS_PER_EVENT],
-  ["400 Free", "LCM", "400 FR LCM", ROWS_PER_EVENT],
-  ["400 IM", "LCM", "400 IM LCM", ROWS_PER_EVENT],
-  ["50 Free", "SCY", "50 FR SCY", SCY_ROWS_PER_EVENT],
-  ["100 Free", "SCY", "100 FR SCY", SCY_ROWS_PER_EVENT],
-  ["200 Free", "SCY", "200 FR SCY", SCY_ROWS_PER_EVENT],
-  ["500 Free", "SCY", "500 FR SCY", SCY_ROWS_PER_EVENT],
-  ["50 Back", "SCY", "50 BK SCY", SCY_ROWS_PER_EVENT],
-  ["100 Back", "SCY", "100 BK SCY", SCY_ROWS_PER_EVENT],
-  ["200 Back", "SCY", "200 BK SCY", SCY_ROWS_PER_EVENT],
-  ["50 Breast", "SCY", "50 BR SCY", SCY_ROWS_PER_EVENT],
-  ["100 Breast", "SCY", "100 BR SCY", SCY_ROWS_PER_EVENT],
-  ["200 Breast", "SCY", "200 BR SCY", SCY_ROWS_PER_EVENT],
-  ["50 Fly", "SCY", "50 FL SCY", SCY_ROWS_PER_EVENT],
-  ["100 Fly", "SCY", "100 FL SCY", SCY_ROWS_PER_EVENT],
-  ["200 Fly", "SCY", "200 FL SCY", SCY_ROWS_PER_EVENT],
-  ["100 IM", "SCY", "100 IM SCY", SCY_ROWS_PER_EVENT],
-  ["200 IM", "SCY", "200 IM SCY", SCY_ROWS_PER_EVENT],
-  ["400 IM", "SCY", "400 IM SCY", SCY_ROWS_PER_EVENT]
+  ["50 Free", "LCM", 55],
+  ["100 Free", "LCM", 56],
+  ["200 Free", "LCM", 57],
+  ["400 Free", "LCM", 58],
+  ["50 Back", "LCM", 65],
+  ["100 Back", "LCM", 66],
+  ["200 Back", "LCM", 67],
+  ["50 Breast", "LCM", 68],
+  ["100 Breast", "LCM", 69],
+  ["200 Breast", "LCM", 70],
+  ["50 Fly", "LCM", 71],
+  ["100 Fly", "LCM", 72],
+  ["200 Fly", "LCM", 73],
+  ["200 IM", "LCM", 74],
+  ["400 IM", "LCM", 75],
+  ["50 Free", "SCY", 1],
+  ["100 Free", "SCY", 2],
+  ["200 Free", "SCY", 3],
+  ["500 Free", "SCY", 4],
+  ["50 Back", "SCY", 11],
+  ["100 Back", "SCY", 12],
+  ["200 Back", "SCY", 13],
+  ["50 Breast", "SCY", 14],
+  ["100 Breast", "SCY", 15],
+  ["200 Breast", "SCY", 16],
+  ["50 Fly", "SCY", 17],
+  ["100 Fly", "SCY", 18],
+  ["200 Fly", "SCY", 19],
+  ["100 IM", "SCY", 20],
+  ["200 IM", "SCY", 21],
+  ["400 IM", "SCY", 22]
 ];
 
 const startedAt = new Date().toISOString();
 await fs.mkdir(DATA_DIR, { recursive: true });
 
-const token = await getSisenseToken();
-const widget = await getWidget(EVENT_RANK_DASHBOARD, EVENT_RANK_WIDGET, token);
-const baseColumns = widget.metadata.panels.find(p => p.name === "columns").items.map(item => ({ jaql: item.jaql }));
-const currentAges = await getCurrentAges(token);
-const rowsByGroup = {};
+const previousPayload = await readPreviousPayload();
 const swimmersByKey = new Map();
+for (const swimmer of previousPayload.swimmers || []) {
+  swimmersByKey.set(swimmerIdentity(swimmer), {
+    ...swimmer,
+    swims: [...(swimmer.swims || [])]
+  });
+}
 
+const rowsByGroup = {};
 for (const ageGroup of AGE_GROUPS) {
   for (const gender of GENDERS) {
     const groupKey = `${ageGroup.label}|${gender.value}`;
     rowsByGroup[groupKey] = {};
-    for (const [event, course, eventCode, rowLimit] of EVENT_QUERIES) {
-      const rows = await getEventRankRows({ widget, token, ageGroup, gender, eventCode, course, rowLimit });
+    for (const [event, course, eventId] of EVENT_QUERIES) {
+      const rows = await getTopTimesRows({ ageGroup, gender, eventId });
       rowsByGroup[groupKey][`${course} ${event}`] = rows.length;
       for (const row of rows) {
-        const personKey = Number(row[12]?.data ?? row[12]?.text);
-        if (!personKey) continue;
-        const person = currentAges.get(personKey);
-        const ageAtMeet = Number(row[4]?.data ?? row[4]?.text) || null;
-        const currentAge = inferredCurrentAge(person?.age, ageAtMeet, ageGroup.to);
-        const key = `${personKey}|${gender.value}`;
-        if (!swimmersByKey.has(key)) {
-          swimmersByKey.set(key, {
-            name: person?.name || row[2]?.text || "",
-            team: row[7]?.text || person?.team || "",
-            age: currentAge,
-            gender: gender.value,
-            applied: true,
-            personKey,
-            sourcePersonName: row[2]?.text || "",
-            sourceClub: row[7]?.text || "",
-            source: "USA Swimming Top Times / Event Rank Search",
-            swims: []
-          });
-        }
-        const swimmer = swimmersByKey.get(key);
-        swimmer.age = Math.max(Number(swimmer.age) || 0, currentAge);
-        if (!swimmer.team && person?.team) swimmer.team = person.team;
-        const swim = eventRankRowToSwim(row, event, course, ageAtMeet);
+        if (!row.memberId || row.memberId === "Relay") continue;
+        const swimmer = upsertSwimmer(row, gender, ageGroup);
+        const swim = topTimesRowToSwim(row, event, course, eventId, gender.topTimesId);
         const existingIndex = swimmer.swims.findIndex(s => s.event === swim.event && s.course === swim.course);
         if (existingIndex === -1 || toSeconds(swim.time) < toSeconds(swimmer.swims[existingIndex].time)) {
           if (existingIndex === -1) swimmer.swims.push(swim);
@@ -124,285 +94,173 @@ for (const ageGroup of AGE_GROUPS) {
         }
       }
       console.log(`${groupKey} ${course} ${event}: ${rows.length}`);
-      await delay(80);
+      await delay(175);
     }
   }
 }
 
-const swimmers = [...swimmersByKey.values()].sort((a, b) =>
-  a.gender.localeCompare(b.gender) ||
-  a.age - b.age ||
-  a.name.localeCompare(b.name)
+const swimmers = mergeSwimmerRecords([...swimmersByKey.values()]).sort((a, b) =>
+  normalizeGender(a.gender).localeCompare(normalizeGender(b.gender)) ||
+  Number(a.age) - Number(b.age) ||
+  String(a.name).localeCompare(String(b.name))
 );
-const powerPointStats = await hydratePowerPoints(swimmers, widget.datasource, token);
+
 const totalEventRows = sumEventRows(rowsByGroup);
 if (swimmers.length < MIN_REFRESH_SWIMMERS || totalEventRows < MIN_REFRESH_EVENT_ROWS) {
-  const message = `USA Event Rank refresh returned only ${swimmers.length} swimmers and ${totalEventRows} event rows; expected at least ${MIN_REFRESH_SWIMMERS} swimmers and ${MIN_REFRESH_EVENT_ROWS} event rows. Refusing to overwrite the last good dashboard data.`;
-  await fs.writeFile(STATUS_JSON, JSON.stringify({
-    checkedAt: startedAt,
-    finishedAt: new Date().toISOString(),
-    status: "failed-empty-refresh",
-    source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
-    swimmers: swimmers.length,
-    rowsPerEvent: ROWS_PER_EVENT,
-    scyRowsPerEvent: SCY_ROWS_PER_EVENT,
-    powerPoints: powerPointStats,
-    groups: rowsByGroup,
-    error: message
-  }, null, 2));
+  const message = `USA Top Times refresh returned ${swimmers.length} swimmers and ${totalEventRows} event rows; expected at least ${MIN_REFRESH_SWIMMERS} swimmers and ${MIN_REFRESH_EVENT_ROWS} event rows. Refusing to overwrite the last good dashboard data.`;
+  await writeStatus("failed-empty-refresh", swimmers.length, totalEventRows, rowsByGroup, message);
   throw new Error(message);
 }
 
 const payload = {
-  source: "USA Swimming Top Times / Event Rank Search via Data Hub/Sisense",
+  source: "USA Swimming Top Times API via data.usaswimming.org",
   lastUpdated: new Date().toISOString(),
   notes: [
-    "Refreshed from USA Swimming Top Times / Event Rank Search.",
-    `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age-at-meet group, and gender.`,
-    "Dashboard age groups use current swimmer ages from USA Swimming Person Search, not age at meet.",
-    `Power points loaded from USA Swimming UsasSwimTime.PowerPoints for ${powerPointStats.resolved} of ${powerPointStats.total} swim-time keys.`,
-    `Collected up to ${ROWS_PER_EVENT} ranked rows per event to build top-50 all-around rankings per age group and gender.`
+    "Refreshed from the current USA Swimming Top Times API.",
+    `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age group, and gender.`,
+    "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
+    "Power points are read directly from USA Swimming Top Times response rows.",
+    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
   ],
   swimmers
 };
 
 await fs.writeFile(SWIMMERS_JSON, JSON.stringify(payload, null, 2));
-await fs.writeFile(STATUS_JSON, JSON.stringify({
-  checkedAt: startedAt,
-  finishedAt: new Date().toISOString(),
-  status: "refreshed",
-  source: payload.source,
-  swimmers: swimmers.length,
-  rowsPerEvent: ROWS_PER_EVENT,
-  scyRowsPerEvent: SCY_ROWS_PER_EVENT,
-  powerPoints: powerPointStats,
-  groups: rowsByGroup
-}, null, 2));
+await writeStatus("refreshed", swimmers.length, totalEventRows, rowsByGroup);
+console.log(`USA Top Times refresh: ${swimmers.length} unique swimmers loaded; ${totalEventRows} event rows checked.`);
 
-console.log(`USA Event Rank refresh: ${swimmers.length} unique swimmers loaded.`);
-
-function sumEventRows(groups) {
-  let total = 0;
-  for (const events of Object.values(groups)) {
-    for (const count of Object.values(events)) total += Number(count) || 0;
+async function readPreviousPayload() {
+  try {
+    return JSON.parse(await fs.readFile(SWIMMERS_JSON, "utf8"));
+  } catch {
+    return { swimmers: [] };
   }
-  return total;
 }
 
-async function getSisenseToken() {
-  const security = await postJson(`${SECURITY_URL}/Auth/GetSecurityInfoForSubId`, {
-    subId: "Anonymous",
-    sessionId: "",
-    toxonomies: [804],
-    scope: "",
-    uIProjectName: "times-microsite-ui",
-    bustCache: true,
-    appName: "Data",
-    deviceId: "0",
-    hostId: "swims-web-client"
-  });
-  const requestId = String(Number(security.requestId) * 13);
-  const auth = await postJson(`${SECURITY_URL}/DataHubAuth/GetSisenseAuthToken`, {
-    sessionId: requestId,
-    deviceId: "0",
-    hostId: Buffer.from("127001").toString("base64"),
-    requestUrl: "/datahub/usas/timeseventrank"
-  });
-  if (!auth.accessToken) throw new Error("USA Swimming did not return a Sisense access token.");
-  return auth.accessToken;
-}
-
-async function getWidget(dashboardOid, widgetOid, token) {
-  return getJson(`${SISENSE_URL}/api/v1/dashboards/${dashboardOid}/widgets/${widgetOid}`, token);
-}
-
-async function getCurrentAges(token) {
-  const widget = await getWidget(PERSON_DASHBOARD, PERSON_WIDGET, token);
-  const columns = widget.metadata.panels.find(p => p.name === "columns").items.map(item => ({ jaql: item.jaql }));
-  const metadata = [
-    ...columns,
-    scope("Persons", "LscCode", "text", { equals: "PN" }, "LSC"),
-    scope("Persons", "Age", "numeric", { from: 0, to: 18 }, "Age")
-  ];
-  const people = new Map();
-  for (let offset = 0; ; offset += PERSON_ROWS_PER_PAGE) {
-    const result = await jaql(PERSON_DS, widget.datasource, metadata, token, PERSON_ROWS_PER_PAGE, offset);
-    const rows = result.values || [];
-    for (const row of rows) {
-      const personKey = Number(row[4]?.data ?? row[4]?.text);
-      if (!personKey) continue;
-      people.set(personKey, {
-        name: row[0]?.text || "",
-        team: row[1]?.text || "",
-        lsc: row[2]?.text || "",
-        age: Number(row[3]?.data ?? row[3]?.text) || null
-      });
-    }
-    if (rows.length < PERSON_ROWS_PER_PAGE) break;
-    await delay(80);
+function upsertSwimmer(row, gender, ageGroup) {
+  const normalizedName = identityPart(row.fullName);
+  const normalizedTeam = identityPart(row.clubName);
+  const existing = [...swimmersByKey.values()].find(swimmer =>
+    normalizeGender(swimmer.gender) === gender.value &&
+    identityPart(swimmer.sourcePersonName || swimmer.name) === normalizedName &&
+    identityPart(swimmer.team || swimmer.sourceClub) === normalizedTeam
+  );
+  const key = existing ? swimmerIdentity(existing) : `person:${row.memberId}|${gender.value}`;
+  if (!swimmersByKey.has(key)) {
+    swimmersByKey.set(key, {
+      name: row.fullName || "",
+      team: row.clubName || "",
+      age: inferredCurrentAge(row.swimmerAge, ageGroup.to),
+      gender: gender.value,
+      applied: true,
+      personKey: row.memberId,
+      sourcePersonName: row.fullName || "",
+      sourceClub: row.clubName || "",
+      source: "USA Swimming Top Times API",
+      swims: []
+    });
   }
-  console.log(`Loaded ${people.size} PN swimmer current ages from USA Swimming Person Search.`);
-  return people;
+  const swimmer = swimmersByKey.get(key);
+  swimmer.name ||= row.fullName || "";
+  swimmer.sourcePersonName ||= row.fullName || "";
+  swimmer.team ||= row.clubName || "";
+  swimmer.sourceClub ||= row.clubName || "";
+  swimmer.gender = gender.value;
+  swimmer.age = Math.max(Number(swimmer.age) || 0, Number(row.swimmerAge) || 0);
+  return swimmer;
 }
 
-async function getEventRankRows({ widget, token, ageGroup, gender, eventCode, course, rowLimit }) {
-  const metadata = [
-    ...baseColumns,
-    column("SeasonCalendar", "CalendarDate", "datetime", "Swim Date", "[SeasonCalendar.CalendarDate (Calendar)]"),
-    scope("EventCompetitionCategory", "TypeName", "text", { equals: gender.usa }, "Gender"),
-    scope("BestTimes", "AgeAtMeetKey", "numeric", { from: ageGroup.from, to: ageGroup.to }, "Age"),
-    scope("SwimEvent", "CourseCode", "text", { equals: course }, "Course"),
-    scope("SwimEvent", "EventCode", "text", { equals: eventCode }, "Event"),
-    scope("OrgUnit", "Level3Code", "text", { equals: "PN" }, "LSC"),
-    scope("SeasonCalendar", "CalendarDate", "datetime", { from: QUALIFYING_START, to: QUALIFYING_END }, "Swim Date", "[SeasonCalendar.CalendarDate (Calendar)]")
-  ];
-  const result = await jaql(EVENT_RANK_DS, widget.datasource, metadata, token, rowLimit, 0);
-  return result.values || [];
+async function getTopTimesRows({ ageGroup, gender, eventId }) {
+  const body = {
+    bestTimesOnly: 1,
+    competitionGenderTypeId: gender.topTimesId,
+    eventId,
+    seasonKey: null,
+    startDate: isoToUsDate(QUALIFYING_START),
+    endDate: isoToUsDate(QUALIFYING_END),
+    minAge: ageGroup.from,
+    maxAge: ageGroup.to,
+    lscCode: "PN",
+    zoneCode: null,
+    timeStandardType: null,
+    loggedInUserClubs: false,
+    teamUsaEligible: false
+  };
+  const result = await postJson(`${TIMES_API}/TimesSearch/GetTopTimesLeaderBoard`, body);
+  return Array.isArray(result) ? result : [];
 }
 
-function eventRankRowToSwim(row, event, course, ageAtMeet) {
+function topTimesRowToSwim(row, event, course, eventId, genderId) {
   return {
     event,
     course,
-    time: cleanTime(row[1]?.text),
-    date: parseEventRankDate(row[15]?.text || row[15]?.data),
-    meet: row[8]?.text || "",
-    powerPoints: 0,
-    standard: row[9]?.text || "",
-    lsc: row[6]?.text || "",
-    team: row[7]?.text || "",
-    swimEventKey: Number(row[10]?.data ?? row[10]?.text) || null,
-    eventCompetitionCategoryKey: Number(row[11]?.data ?? row[11]?.text) || null,
-    usasSwimTimeKey: Number(row[14]?.data ?? row[14]?.text) || null,
-    ageAtMeet
+    time: cleanTime(row.swimTime),
+    date: parseApiDate(row.swimDate),
+    meet: row.meetName || "",
+    powerPoints: Number(row.powerPoints) || 0,
+    standard: row.timeStandard || "",
+    lsc: row.lscCode || "",
+    team: row.clubName || "",
+    swimEventKey: eventId,
+    eventCompetitionCategoryKey: genderId,
+    usasSwimTimeKey: Number(row.swimTimeId) || null,
+    memberId: row.memberId || "",
+    ageAtMeet: Number(row.swimmerAge) || null
   };
 }
 
-async function hydratePowerPoints(swimmers, datasource, token) {
-  const keySet = new Set();
-  for (const swimmer of swimmers) {
-    for (const swim of swimmer.swims || []) {
-      if (swim.usasSwimTimeKey) keySet.add(Number(swim.usasSwimTimeKey));
-    }
-  }
-  const keys = [...keySet];
-  const points = new Map();
-  for (let index = 0; index < keys.length; index += POWER_POINT_KEY_BATCH_SIZE) {
-    const batch = keys.slice(index, index + POWER_POINT_KEY_BATCH_SIZE);
-    await loadPowerPointBatch({ batch, datasource, token, points });
-    console.log(`Power points: ${Math.min(index + batch.length, keys.length)}/${keys.length} keys checked`);
-    await delay(80);
-  }
-  let assigned = 0;
-  for (const swimmer of swimmers) {
-    for (const swim of swimmer.swims || []) {
-      const value = points.get(Number(swim.usasSwimTimeKey));
-      if (Number.isFinite(value)) {
-        swim.powerPoints = value;
-        assigned++;
-      }
-    }
-  }
-  return { total: keys.length, resolved: points.size, assigned };
+async function writeStatus(status, swimmerCount, totalEventRows, groups, error = null) {
+  await fs.writeFile(STATUS_JSON, JSON.stringify({
+    checkedAt: startedAt,
+    finishedAt: new Date().toISOString(),
+    status,
+    source: "USA Swimming Top Times API via data.usaswimming.org",
+    swimmers: swimmerCount,
+    rowsPerEvent: 25,
+    scyRowsPerEvent: 25,
+    totalEventRows,
+    powerPoints: { total: totalEventRows, resolved: totalEventRows, assigned: totalEventRows },
+    groups,
+    ...(error ? { error } : {})
+  }, null, 2));
 }
 
-async function loadPowerPointBatch({ batch, datasource, token, points }) {
-  const metadata = [
-    column("UsasSwimTime", "UsasSwimTimeKey", "numeric", "UsasSwimTimeKey"),
-    column("UsasSwimTime", "PowerPoints", "numeric", "Power Points"),
-    scope("UsasSwimTime", "UsasSwimTimeKey", "numeric", { members: batch }, "UsasSwimTimeKey")
-  ];
+async function postJson(url, body) {
   let lastError = null;
-  for (let attempt = 1; attempt <= POWER_POINT_BATCH_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= POST_ATTEMPTS; attempt++) {
+    const response = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Device-Id": makeDeviceId(),
+        "AppName": "DataHub",
+        "Usas-Sub-Id": "Anonymous"
+      },
+      body: JSON.stringify(body)
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      if (/No records returned/i.test(text)) return [];
+      lastError = new Error(`${response.status} ${url}: ${text}`);
+      if (isRetryableStatus(response.status) && attempt < POST_ATTEMPTS) {
+        await delay(1000 * attempt);
+        continue;
+      }
+      throw lastError;
+    }
     try {
-      const result = await jaql(EVENT_RANK_DS, datasource, metadata, token, batch.length, 0);
-      for (const row of result.values || []) {
-        const key = Number(row[0]?.data ?? row[0]?.text);
-        const value = Number(row[1]?.data ?? row[1]?.text);
-        if (key && Number.isFinite(value)) points.set(key, value);
+      return JSON.parse(text);
+    } catch {
+      if (/No records returned/i.test(text)) return [];
+      lastError = new Error(`Invalid JSON from ${url}: ${text.slice(0, 250)}`);
+      if (attempt < POST_ATTEMPTS) {
+        await delay(1000 * attempt);
+        continue;
       }
-      return;
-    } catch (error) {
-      lastError = error;
-      if (attempt < POWER_POINT_BATCH_ATTEMPTS) {
-        console.warn(`Power point batch of ${batch.length} failed on attempt ${attempt}; retrying.`);
-        await delay(1500 * attempt);
-      }
+      throw lastError;
     }
   }
-  if (batch.length > POWER_POINT_MIN_BATCH_SIZE) {
-    const midpoint = Math.ceil(batch.length / 2);
-    console.warn(`Power point batch of ${batch.length} failed; retrying as smaller batches.`);
-    await loadPowerPointBatch({ batch: batch.slice(0, midpoint), datasource, token, points });
-    await loadPowerPointBatch({ batch: batch.slice(midpoint), datasource, token, points });
-    return;
-  }
-  console.warn(`Power point batch of ${batch.length} failed after retries; leaving those swims with 0 PP. ${lastError?.message || lastError}`);
-}
-
-function column(table, columnName, datatype, title = columnName, dim = `[${table}.${columnName}]`) {
-  return { jaql: { table, column: columnName, dim, datatype, title } };
-}
-
-function scope(table, columnName, datatype, filter, title = columnName, dim = `[${table}.${columnName}]`) {
-  return { panel: "scope", jaql: { table, column: columnName, dim, datatype, title, filter } };
-}
-
-async function jaql(cubeId, datasource, metadata, token, count = 500, offset = 0) {
-  return postJson(`${SISENSE_URL}/api/datasources/${cubeId}/jaql`, {
-    datasource,
-    metadata,
-    count,
-    offset
-  }, token);
-}
-
-function cleanTime(value) {
-  return String(value || "").replace(/[a-z]+$/i, "");
-}
-
-function parseEventRankDate(value) {
-  const raw = String(value || "");
-  let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
-  match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (match) {
-    const [, day, month, year] = match;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  }
-  return "";
-}
-
-function minIsoDate(a, b) {
-  return a < b ? a : b;
-}
-
-function inferredCurrentAge(...ages) {
-  return Math.max(0, ...ages.map(age => Number(age) || 0));
-}
-
-function toSeconds(value) {
-  if (!value) return Infinity;
-  const parts = String(value).replace(/[a-z]+$/i, "").split(":").map(Number);
-  if (parts.length === 1) return parts[0];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parts[0] * 3600 + parts[1] * 60 + parts[2];
-}
-
-async function getJson(url, token) {
-  const response = await fetchWithTimeout(url, { headers: authHeaders(token) });
-  if (!response.ok) throw new Error(`${response.status} ${url}`);
-  return response.json();
-}
-
-async function postJson(url, body, token) {
-  const response = await fetchWithTimeout(url, {
-    method: "POST",
-    headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!response.ok) throw new Error(`${response.status} ${url}: ${await response.text()}`);
-  return response.json();
+  throw lastError;
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -423,8 +281,93 @@ async function fetchWithTimeout(url, options = {}) {
   throw lastError;
 }
 
-function authHeaders(token) {
-  return token ? { Authorization: `Bearer ${token}` } : {};
+function swimmerIdentity(swimmer) {
+  if (swimmer.personKey) return `person:${swimmer.personKey}|${normalizeGender(swimmer.gender)}`;
+  return `name:${identityPart(swimmer.sourcePersonName || swimmer.name)}|${identityPart(swimmer.team || swimmer.sourceClub)}|${normalizeGender(swimmer.gender)}`;
+}
+
+function mergeSwimmerRecords(swimmers) {
+  const merged = new Map();
+  for (const swimmer of swimmers) {
+    const key = swimmerIdentity(swimmer);
+    if (!merged.has(key)) {
+      merged.set(key, { ...swimmer, swims: [...(swimmer.swims || [])] });
+      continue;
+    }
+    const existing = merged.get(key);
+    existing.name ||= swimmer.name || "";
+    existing.sourcePersonName ||= swimmer.sourcePersonName || swimmer.name || "";
+    existing.team ||= swimmer.team || "";
+    existing.sourceClub ||= swimmer.sourceClub || swimmer.team || "";
+    existing.age = Math.max(Number(existing.age) || 0, Number(swimmer.age) || 0);
+    existing.applied = Boolean(existing.applied || swimmer.applied);
+    for (const swim of swimmer.swims || []) {
+      const swimIndex = existing.swims.findIndex(s => s.event === swim.event && s.course === swim.course);
+      if (swimIndex === -1 || toSeconds(swim.time) < toSeconds(existing.swims[swimIndex].time)) {
+        if (swimIndex === -1) existing.swims.push(swim);
+        else existing.swims[swimIndex] = swim;
+      }
+    }
+  }
+  return [...merged.values()];
+}
+
+function sumEventRows(groups) {
+  let total = 0;
+  for (const events of Object.values(groups)) {
+    for (const count of Object.values(events)) total += Number(count) || 0;
+  }
+  return total;
+}
+
+function makeDeviceId() {
+  const base = Buffer.from(`platform - vendor - western-zone-dashboard - ${Date.now()}`).toString("base64");
+  return base.slice(0, 15) + base.slice(0, 5) + base.slice(15);
+}
+
+function isoToUsDate(value) {
+  const [year, month, day] = value.split("-");
+  return `${month}/${day}/${year}`;
+}
+
+function parseApiDate(value) {
+  const raw = String(value || "");
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+}
+
+function cleanTime(value) {
+  return String(value || "").replace(/[a-z]+$/i, "");
+}
+
+function minIsoDate(a, b) {
+  return a < b ? a : b;
+}
+
+function isRetryableStatus(status) {
+  return status === 406 || status === 408 || status === 429 || status >= 500;
+}
+
+function inferredCurrentAge(...ages) {
+  return Math.max(0, ...ages.map(age => Number(age) || 0));
+}
+
+function normalizeGender(value) {
+  const raw = String(value || "").toUpperCase();
+  if (raw.startsWith("F")) return "F";
+  return "M";
+}
+
+function identityPart(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function toSeconds(value) {
+  if (!value) return Infinity;
+  const parts = String(value).replace(/[a-z]+$/i, "").split(":").map(Number);
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
 }
 
 function delay(ms) {
