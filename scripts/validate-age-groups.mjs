@@ -11,7 +11,7 @@ const REQUIRED_GROUPS = ["11-12|M"];
 
 const source = JSON.parse(await fs.readFile(DATA_JSON, "utf8"));
 const html = await fs.readFile(INDEX_HTML, "utf8");
-const match = html.match(/const DATA=(.*?);\nconst TARGET=/s);
+const match = html.match(/const DATA=(.*?);\nconst [A-Z][A-Z0-9_]*=/s);
 if (!match) throw new Error("Could not find embedded dashboard DATA in index.html.");
 const dashboard = JSON.parse(match[1]);
 
