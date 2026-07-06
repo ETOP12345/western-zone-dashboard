@@ -16,7 +16,7 @@ The public page is generated from official USA Swimming data:
 
 The old USA Swimming Sisense/DataHub Event Rank route now redirects to the new Top Times app. If the daily refresh stops updating again, first verify that `scripts/refresh-from-usa-event-rank.mjs` still receives non-empty rows from `https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard`.
 
-The dashboard defaults to 11-12 Male and shows the top 50 swimmers. The selectors at the top support age group, gender, and swimmer filtering when those groups are present in the loaded data. The top summary and right-side details are generic and update based on the selected view or clicked row; no swimmer is hardcoded as a featured athlete.
+The dashboard defaults to 11-12 Male and shows the top 50 swimmers. The selectors at the top support age group, gender, and swimmer filtering when those groups are present in the loaded data. A prominent disclaimer makes clear that the scoring is unofficial and may contain mistakes or wrong interpretations. The right-side details are generic and update based on the selected view or clicked row; no swimmer is hardcoded as a featured athlete.
 
 Before any manual publish, always run:
 
