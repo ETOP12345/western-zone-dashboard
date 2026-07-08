@@ -1,9 +1,9 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-07T16:32:55.901Z",
+  "lastUpdated": "2026-07-08T16:08:05.419Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
-    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-07, age group, and gender.",
+    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-08, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
     "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
@@ -233102,6 +233102,35 @@
       ]
     },
     {
+      "name": "Jeff Yin",
+      "team": "Chinook Aquatic Club",
+      "age": 10,
+      "gender": "M",
+      "applied": true,
+      "personKey": "F1C578C8F8F64E",
+      "sourcePersonName": "Jeff Yin",
+      "sourceClub": "Chinook Aquatic Club",
+      "source": "USA Swimming Top Times API",
+      "swims": [
+        {
+          "event": "100 Free",
+          "course": "SCY",
+          "time": "1:02.46",
+          "date": "2026-07-04",
+          "meet": "2026 Chinook Challenge ",
+          "powerPoints": 844,
+          "standard": "AAA",
+          "lsc": "PN",
+          "team": "Chinook Aquatic Club",
+          "swimEventKey": 2,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342255629,
+          "memberId": "F1C578C8F8F64E",
+          "ageAtMeet": 6
+        }
+      ]
+    },
+    {
       "name": "Jeffrey Lou",
       "team": "Seattle Metropolitan Aquatic Club",
       "age": 10,
@@ -375251,6 +375280,22 @@
           "eventCompetitionCategoryKey": 2,
           "usasSwimTimeKey": 186287899,
           "ageAtMeet": 15
+        },
+        {
+          "event": "50 Free",
+          "course": "LCM",
+          "time": "25.46",
+          "date": "2026-06-30",
+          "meet": "2026 PN SMAC Summer Classic",
+          "powerPoints": 736,
+          "standard": "AAA",
+          "lsc": "PN",
+          "team": "Seattle Metropolitan Aquatic Club",
+          "swimEventKey": 55,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342166451,
+          "memberId": "9F5B2CC287CB4E",
+          "ageAtMeet": 16
         }
       ]
     },
