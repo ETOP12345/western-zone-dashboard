@@ -1,9 +1,9 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-12T14:59:22.806Z",
+  "lastUpdated": "2026-07-13T16:36:23.797Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
-    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-12, age group, and gender.",
+    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-13, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
     "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
@@ -395518,16 +395518,17 @@
         {
           "event": "100 Breast",
           "course": "SCY",
-          "time": "55.17",
-          "date": "2026-02-20",
-          "meet": "2026 WIAA 4A Boys High School State Champs",
-          "powerPoints": 914,
-          "standard": "2026 Winter Juniors (SCY)",
+          "time": "55.14",
+          "date": "2026-06-26",
+          "meet": "2026 IN FAST SwimStrong Dryland Elite Camp Showdown",
+          "powerPoints": 916,
+          "standard": "Winter Jrs",
           "lsc": "PN",
-          "team": "Unattached",
+          "team": "Wave Aquatics",
           "swimEventKey": 15,
-          "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 185899993,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342310798,
+          "memberId": "5F6829094DA544",
           "ageAtMeet": 17
         },
         {
