@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-07-19T14:53:03.766Z",
-  "finishedAt": "2026-07-19T14:58:07.624Z",
+  "checkedAt": "2026-07-20T15:47:49.908Z",
+  "finishedAt": "2026-07-20T15:53:29.270Z",
   "status": "refreshed",
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "swimmers": 2839,
+  "swimmers": 2843,
   "rowsPerEvent": 25,
   "scyRowsPerEvent": 25,
   "totalEventRows": 7467,
