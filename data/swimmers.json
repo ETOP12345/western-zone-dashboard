@@ -1,9 +1,9 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-22T15:44:14.638Z",
+  "lastUpdated": "2026-07-23T15:58:54.374Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
-    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-22, age group, and gender.",
+    "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-23, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
     "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
@@ -168311,16 +168311,17 @@
         {
           "event": "100 Back",
           "course": "LCM",
-          "time": "1:13.05",
-          "date": "2026-05-02",
-          "meet": "2026 PN BC May Flowers Long Course Challenge",
-          "powerPoints": 565,
-          "standard": "A",
+          "time": "1:11.22",
+          "date": "2026-07-17",
+          "meet": "2026 PN 13&O Long Course Championships",
+          "powerPoints": 627,
+          "standard": "AA",
           "lsc": "PN",
           "team": "Bellevue Club Swim Team",
           "swimEventKey": 66,
-          "eventCompetitionCategoryKey": 1,
-          "usasSwimTimeKey": 187555251,
+          "eventCompetitionCategoryKey": 2,
+          "usasSwimTimeKey": 342700005,
+          "memberId": "230FC7E513B24E",
           "ageAtMeet": 15
         },
         {
