@@ -2,6 +2,13 @@ name: Daily USA Swimming refresh
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/daily-refresh.yml"
+      - "data/swimmers.json"
+      - "scripts/build-public-lite.mjs"
   schedule:
     # 7 AM Pacific during daylight-saving time. GitHub cron schedules use UTC.
     - cron: "0 14 * * *"

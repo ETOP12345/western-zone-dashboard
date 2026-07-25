@@ -2,7 +2,7 @@
 
 Public dashboard for Team Pacific Northwest Western Zone ranking views across supported age groups and genders.
 
-Hosted at: https://jialiu103.github.io/western-zone-dashboard/
+Hosted at: https://ETOP12345.github.io/western-zone-dashboard/
 
 This GitHub repository is the source of truth for the hosted site.
 
@@ -16,7 +16,7 @@ The public page is generated from official USA Swimming data:
 
 The old USA Swimming Sisense/DataHub Event Rank route now redirects to the new Top Times app. If the daily refresh stops updating again, first verify that `scripts/refresh-from-usa-event-rank.mjs` still receives non-empty rows from `https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard`.
 
-The dashboard defaults to 11-12 Male and shows the top 50 swimmers. The selectors at the top support age group, gender, and swimmer filtering when those groups are present in the loaded data. A prominent disclaimer makes clear that the scoring is unofficial and may contain mistakes or wrong interpretations. The right-side details are generic and update based on the selected view or clicked row; no swimmer is hardcoded as a featured athlete.
+The dashboard defaults to 11-12 Male and shows the top 50 swimmers. Age group and gender are the master filters: the ranking table, swimmer selector, team distribution, team drilldown, event drilldown, and AAA/tie drilldown must all be derived from the selected age group/gender top 50 only. A prominent disclaimer makes clear that the scoring is unofficial and may contain mistakes or wrong interpretations. The right-side details are generic and update based on the selected view or clicked row; no swimmer is hardcoded as a featured athlete.
 
 Before any manual publish, always run:
 
@@ -26,3 +26,5 @@ node scripts/validate-age-groups.mjs
 ```
 
 Do not publish `index.html` if validation fails. A stale page can look internally consistent, for example by showing a swimmer as age 12 in `11-12`, while the refreshed source record says that swimmer now belongs in `13-14`.
+
+Before publishing UI changes, also spot-check the generated page data for at least one known regression case: Drake Kraft must not appear in the `11-12|M` published group if his current inferred age belongs in `13-14`.
