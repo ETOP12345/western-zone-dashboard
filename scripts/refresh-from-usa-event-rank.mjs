@@ -66,6 +66,7 @@ const EVENT_QUERIES = [
 
 const startedAt = new Date().toISOString();
 await fs.mkdir(DATA_DIR, { recursive: true });
+const refreshWarnings = [];
 
 const previousPayload = await readPreviousPayload();
 const swimmersByKey = new Map();
@@ -82,7 +83,14 @@ for (const ageGroup of AGE_GROUPS) {
     const groupKey = `${ageGroup.label}|${gender.value}`;
     rowsByGroup[groupKey] = {};
     for (const [event, course, eventId] of EVENT_QUERIES) {
-      const rows = await getTopTimesRows({ ageGroup, gender, eventId });
+      let rows = [];
+      try {
+        rows = await getTopTimesRows({ ageGroup, gender, eventId });
+      } catch (error) {
+        const warning = `${groupKey} ${course} ${event}: ${error.message}`;
+        refreshWarnings.push(warning);
+        console.warn(`Warning: ${warning}`);
+      }
       rowsByGroup[groupKey][`${course} ${event}`] = rows.length;
       for (const row of rows) {
         if (!row.memberId || row.memberId === "Relay") continue;
@@ -121,14 +129,15 @@ const payload = {
     `Filters: PN LSC, LCM ranking events and SCY tie-break events, ${QUALIFYING_START} through ${QUALIFYING_END}, age group, and gender.`,
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
-    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
+    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned.",
+    ...(refreshWarnings.length ? [`${refreshWarnings.length} event queries failed during this refresh; previous swimmer rows were retained where available for missed events.`] : [])
   ],
   swimmers
 };
 
 await fs.writeFile(SWIMMERS_JSON, JSON.stringify(payload, null, 2));
-await writeStatus("refreshed", swimmers.length, totalEventRows, rowsByGroup);
-console.log(`USA Top Times refresh: ${swimmers.length} unique swimmers loaded; ${totalEventRows} event rows checked.`);
+await writeStatus("refreshed", swimmers.length, totalEventRows, rowsByGroup, null, refreshWarnings);
+console.log(`USA Top Times refresh: ${swimmers.length} unique swimmers loaded; ${totalEventRows} event rows checked; ${refreshWarnings.length} warnings.`);
 
 async function readPreviousPayload() {
   try {
@@ -210,7 +219,7 @@ function topTimesRowToSwim(row, event, course, eventId, genderId) {
   };
 }
 
-async function writeStatus(status, swimmerCount, totalEventRows, groups, error = null) {
+async function writeStatus(status, swimmerCount, totalEventRows, groups, error = null, warnings = []) {
   await fs.writeFile(STATUS_JSON, JSON.stringify({
     checkedAt: startedAt,
     finishedAt: new Date().toISOString(),
@@ -222,6 +231,7 @@ async function writeStatus(status, swimmerCount, totalEventRows, groups, error =
     totalEventRows,
     powerPoints: { total: totalEventRows, resolved: totalEventRows, assigned: totalEventRows },
     groups,
+    ...(warnings.length ? { warnings } : {}),
     ...(error ? { error } : {})
   }, null, 2));
 }

@@ -9,6 +9,7 @@ on:
       - ".github/workflows/daily-refresh.yml"
       - "data/swimmers.json"
       - "scripts/build-public-lite.mjs"
+      - "scripts/refresh-from-usa-event-rank.mjs"
   schedule:
     # 7 AM Pacific during daylight-saving time. GitHub cron schedules use UTC.
     - cron: "0 14 * * *"
