@@ -1,6 +1,6 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-25T15:05:28.808Z",
+  "lastUpdated": "2026-07-25T23:55:20.563Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
     "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-25, age group, and gender.",
