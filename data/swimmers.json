@@ -1,13 +1,12 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-25T07:04:57.133Z",
+  "lastUpdated": "2026-07-25T15:05:28.808Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
     "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-25, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
-    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned.",
-    "71 event queries failed during this refresh; previous swimmer rows were retained where available for missed events."
+    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
   ],
   "swimmers": [
     {
@@ -418280,6 +418279,86 @@
           "swimEventKey": 16,
           "eventCompetitionCategoryKey": 1,
           "usasSwimTimeKey": 342507427,
+          "memberId": "D1D22F431AEB4C",
+          "ageAtMeet": 17
+        },
+        {
+          "event": "50 Breast",
+          "course": "LCM",
+          "time": "30.56",
+          "date": "2026-07-16",
+          "meet": "2026 BC Summer Provincial Championships",
+          "powerPoints": 808,
+          "standard": "Futures",
+          "lsc": "PN",
+          "team": "Bellevue Club Swim Team",
+          "swimEventKey": 68,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342887714,
+          "memberId": "D1D22F431AEB4C",
+          "ageAtMeet": 17
+        },
+        {
+          "event": "100 Breast",
+          "course": "LCM",
+          "time": "1:07.75",
+          "date": "2026-07-19",
+          "meet": "2026 BC Summer Provincial Championships",
+          "powerPoints": 786,
+          "standard": "Futures",
+          "lsc": "PN",
+          "team": "Bellevue Club Swim Team",
+          "swimEventKey": 69,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342887715,
+          "memberId": "D1D22F431AEB4C",
+          "ageAtMeet": 17
+        },
+        {
+          "event": "200 Breast",
+          "course": "LCM",
+          "time": "2:28.40",
+          "date": "2026-07-17",
+          "meet": "2026 BC Summer Provincial Championships",
+          "powerPoints": 783,
+          "standard": "Futures",
+          "lsc": "PN",
+          "team": "Bellevue Club Swim Team",
+          "swimEventKey": 70,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342887716,
+          "memberId": "D1D22F431AEB4C",
+          "ageAtMeet": 17
+        },
+        {
+          "event": "200 IM",
+          "course": "LCM",
+          "time": "2:15.64",
+          "date": "2026-07-17",
+          "meet": "2026 BC Summer Provincial Championships",
+          "powerPoints": 700,
+          "standard": "AA",
+          "lsc": "PN",
+          "team": "Bellevue Club Swim Team",
+          "swimEventKey": 74,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342887717,
+          "memberId": "D1D22F431AEB4C",
+          "ageAtMeet": 17
+        },
+        {
+          "event": "400 IM",
+          "course": "LCM",
+          "time": "4:48.95",
+          "date": "2026-07-18",
+          "meet": "2026 BC Summer Provincial Championships",
+          "powerPoints": 701,
+          "standard": "AA",
+          "lsc": "PN",
+          "team": "Bellevue Club Swim Team",
+          "swimEventKey": 75,
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 342887718,
           "memberId": "D1D22F431AEB4C",
           "ageAtMeet": 17
         }
