@@ -9,9 +9,9 @@ const SWIMMERS_JSON = path.join(DATA_DIR, "swimmers.json");
 const STATUS_JSON = path.join(DATA_DIR, "usa-event-rank-status.json");
 
 const TIMES_API = "https://times-api.usaswimming.org/swims";
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 8000;
 const REQUEST_ATTEMPTS = 1;
-const POST_ATTEMPTS = 3;
+const POST_ATTEMPTS = 1;
 const MIN_REFRESH_SWIMMERS = Number(process.env.MIN_REFRESH_SWIMMERS || 500);
 const MIN_REFRESH_EVENT_ROWS = Number(process.env.MIN_REFRESH_EVENT_ROWS || 500);
 const QUALIFYING_START = "2025-07-01";
