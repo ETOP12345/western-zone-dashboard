@@ -42,7 +42,7 @@ for (const swimmer of sourceSwimmers) {
     personKey: swimmer.personKey ? String(swimmer.personKey) : "",
     name: swimmer.name || "",
     sourcePersonName: swimmer.sourcePersonName || "",
-    team: swimmer.team || "",
+    team: latestTeam(swimmer) || swimmer.team || "",
     gender: normalizeGender(swimmer.gender),
     age: inferredAge,
     ageGroup: ageGroupFor(inferredAge)
@@ -58,7 +58,16 @@ for (const swimmer of sourceSwimmers) {
 
 for (const [key, rows] of Object.entries(dashboard.groups || {})) {
   const [ageGroup, gender] = key.split("|");
+  const publishedIdentities = new Map();
   for (const row of rows) {
+    const publishedIdentity = `${identityPart(row.sourcePersonName || row.name)}|${row.age}|${normalizeGender(row.gender)}`;
+    const duplicate = publishedIdentities.get(publishedIdentity);
+    if (duplicate) {
+      errors.push(`${row.sourcePersonName || row.name} is published more than once in ${key}: ${duplicate.team} and ${row.team}.`);
+    } else {
+      publishedIdentities.set(publishedIdentity, row);
+    }
+
     const expected = ageGroupFor(Number(row.age) || 0);
     if (expected !== ageGroup) {
       errors.push(`${row.name} age ${row.age} is published in ${key}; expected ${expected}|${gender}.`);
@@ -96,6 +105,22 @@ function inferredCurrentAge(swimmer) {
     ages.push(Number(swim.ageAtMeet) || 0);
   }
   return Math.max(...ages);
+}
+
+function latestTeam(swimmer) {
+  return (swimmer.swims || [])
+    .filter(swim => swim.team && parseMeetDate(swim.date))
+    .sort((a, b) => +parseMeetDate(b.date) - +parseMeetDate(a.date))[0]?.team || "";
+}
+
+function parseMeetDate(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) return new Date(`${match[1]}-${match[2]}-${match[3]}T12:00:00`);
+  match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) return new Date(`${match[3]}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}T12:00:00`);
+  return null;
 }
 
 function addSourceIdentity(index, key, swimmer) {

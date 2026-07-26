@@ -10,7 +10,7 @@ The public page is generated from official USA Swimming data:
 
 1. `scripts/refresh-from-usa-event-rank.mjs` refreshes `data/swimmers.json` from the current Top Times API used by data.usaswimming.org for all configured age groups and genders.
 2. `scripts/build-public-lite.mjs` rebuilds `index.html`.
-3. `scripts/validate-age-groups.mjs` must pass before publishing. It checks every published swimmer against the current `data/swimmers.json` source record and fails if the published age, age group, or gender no longer matches the source data.
+3. `scripts/validate-age-groups.mjs` must pass before publishing. It checks every published swimmer against the current `data/swimmers.json` source record and fails if the published age, age group, gender, latest-team assignment, or duplicate swimmer identity is wrong.
 4. `.github/workflows/daily-refresh.yml` runs the refresh daily, validates the age groups, and commits changes back to GitHub.
 5. `.github/workflows/validate-dashboard.yml` also runs the same validation on every push and pull request so manual publishes get checked too.
 

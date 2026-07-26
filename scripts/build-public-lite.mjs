@@ -30,7 +30,7 @@ const AAA_CUTS = {
 
 const source = JSON.parse(await fs.readFile(INPUT, "utf8"));
 const previousDashboard = await readPreviousDashboard(OUTPUT);
-const swimmers = (source.swimmers || []).map(normalizeSwimmer);
+const swimmers = mergeDuplicateSwimmers((source.swimmers || []).map(normalizeSwimmer));
 const groups = {};
 for (const ageGroup of AGE_GROUPS) {
   for (const [gender] of GENDERS) {
@@ -116,6 +116,69 @@ function normalizeSwimmer(swimmer) {
     ageGroup: ageGroupFor(age),
     swims: swimmer.swims || []
   };
+}
+
+function mergeDuplicateSwimmers(swimmers) {
+  const byIdentity = new Map();
+  for (const swimmer of swimmers) {
+    const key = swimmerIdentity(swimmer);
+    const existing = byIdentity.get(key);
+    if (!existing) {
+      byIdentity.set(key, { ...swimmer, personKeys: [swimmer.personKey].filter(Boolean), swims: dedupeSwims(swimmer.swims || []) });
+      continue;
+    }
+    existing.personKeys.push(...[swimmer.personKey].filter(Boolean));
+    existing.swims = dedupeSwims([...(existing.swims || []), ...(swimmer.swims || [])]);
+    existing.age = Math.max(Number(existing.age) || 0, Number(swimmer.age) || 0);
+    existing.ageGroup = ageGroupFor(existing.age);
+    existing.personKey = stableMergedPersonKey(existing);
+    existing.name = longestName(existing.name, swimmer.name);
+    existing.sourcePersonName = existing.sourcePersonName || swimmer.sourcePersonName || existing.name;
+    existing.sourceClub = existing.sourceClub || swimmer.sourceClub || swimmer.team || "";
+  }
+  for (const swimmer of byIdentity.values()) {
+    const latest = latestTeamSwim(swimmer.swims || []);
+    if (latest?.team) swimmer.team = latest.team;
+  }
+  return [...byIdentity.values()];
+}
+
+function swimmerIdentity(swimmer) {
+  return `${identityPart(swimmer.sourcePersonName || swimmer.name)}|${normalizeGender(swimmer.gender)}|${Number(swimmer.age) || 0}`;
+}
+
+function identityPart(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+
+function stableMergedPersonKey(swimmer) {
+  const keys = [...new Set(swimmer.personKeys || [])].map(String).sort();
+  return keys[0] || swimmer.personKey || null;
+}
+
+function longestName(a, b) {
+  return String(b || "").length > String(a || "").length ? b : a;
+}
+
+function dedupeSwims(swims) {
+  const byKey = new Map();
+  for (const swim of swims || []) {
+    const key = [swim.date, swim.event, swim.course, swim.time, swim.meet].map(v => String(v || "")).join("|");
+    const existing = byKey.get(key);
+    if (!existing || teamDateWeight(swim) >= teamDateWeight(existing)) byKey.set(key, swim);
+  }
+  return [...byKey.values()];
+}
+
+function latestTeamSwim(swims) {
+  return (swims || [])
+    .filter(swim => swim.team && parseMeetDate(swim.date))
+    .sort((a, b) => teamDateWeight(b) - teamDateWeight(a))[0] || null;
+}
+
+function teamDateWeight(swim) {
+  const date = parseMeetDate(swim.date);
+  return date ? +date : 0;
 }
 
 function inferredCurrentAge(swimmer) {
