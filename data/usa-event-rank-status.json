@@ -1,16 +1,16 @@
 {
-  "checkedAt": "2026-07-26T00:36:06.762Z",
-  "finishedAt": "2026-07-26T00:37:39.772Z",
+  "checkedAt": "2026-07-26T00:39:16.611Z",
+  "finishedAt": "2026-07-26T00:40:58.702Z",
   "status": "refreshed",
   "source": "USA Swimming Top Times API via data.usaswimming.org",
   "swimmers": 2843,
   "rowsPerEvent": 25,
   "scyRowsPerEvent": 25,
-  "totalEventRows": 1692,
+  "totalEventRows": 1792,
   "powerPoints": {
-    "total": 1692,
-    "resolved": 1692,
-    "assigned": 1692
+    "total": 1792,
+    "resolved": 1792,
+    "assigned": 1792
   },
   "groups": {
     "10&U|M": {
@@ -97,10 +97,10 @@
       "LCM 400 IM": 25,
       "SCY 50 Free": 25,
       "SCY 100 Free": 25,
-      "SCY 200 Free": 0,
-      "SCY 500 Free": 0,
-      "SCY 50 Back": 0,
-      "SCY 100 Back": 0,
+      "SCY 200 Free": 25,
+      "SCY 500 Free": 25,
+      "SCY 50 Back": 25,
+      "SCY 100 Back": 25,
       "SCY 200 Back": 0,
       "SCY 50 Breast": 0,
       "SCY 100 Breast": 0,
@@ -345,10 +345,6 @@
     }
   },
   "warnings": [
-    "11-12|M SCY 200 Free: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
-    "11-12|M SCY 500 Free: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
-    "11-12|M SCY 50 Back: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
-    "11-12|M SCY 100 Back: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
     "11-12|M SCY 200 Back: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
     "11-12|M SCY 50 Breast: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
     "11-12|M SCY 100 Breast: 406 https://times-api.usaswimming.org/swims/TimesSearch/GetTopTimesLeaderBoard: ",
