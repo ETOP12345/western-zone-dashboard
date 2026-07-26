@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: daily-usa-refresh-main
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -24,6 +28,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -48,5 +54,13 @@ jobs:
             echo "No ranking changes to commit."
           else
             git commit -m "Daily USA Swimming refresh"
-            git push
+            for attempt in 1 2 3; do
+              if git pull --rebase origin main && git push; then
+                exit 0
+              fi
+              echo "Push failed on attempt ${attempt}; retrying after fetching latest main."
+              sleep 5
+            done
+            echo "Unable to push refreshed dashboard after 3 attempts."
+            exit 1
           fi
