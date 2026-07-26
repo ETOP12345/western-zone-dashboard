@@ -27,4 +27,6 @@ node scripts/validate-age-groups.mjs
 
 Do not publish `index.html` if validation fails. A stale page can look internally consistent, for example by showing a swimmer as age 12 in `11-12`, while the refreshed source record says that swimmer now belongs in `13-14`.
 
+For duplicate-looking swimmer names, do not merge by name alone. USA Swimming public ranking payloads used here do not expose birthdays, so duplicate records should only be merged when they share a USA Swimming/member/swim identity token or repeated identical swim-history evidence.
+
 Before publishing UI changes, also spot-check the generated page data for at least one known regression case: Drake Kraft must not appear in the `11-12|M` published group if his current inferred age belongs in `13-14`.

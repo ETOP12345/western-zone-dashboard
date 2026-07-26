@@ -119,32 +119,106 @@ function normalizeSwimmer(swimmer) {
 }
 
 function mergeDuplicateSwimmers(swimmers) {
-  const byIdentity = new Map();
-  for (const swimmer of swimmers) {
-    const key = swimmerIdentity(swimmer);
-    const existing = byIdentity.get(key);
-    if (!existing) {
-      byIdentity.set(key, { ...swimmer, personKeys: [swimmer.personKey].filter(Boolean), swims: dedupeSwims(swimmer.swims || []) });
-      continue;
+  const parent = swimmers.map((_, index) => index);
+  const seenTokens = new Map();
+  const historyTokenOwners = new Map();
+  swimmers.forEach((swimmer, index) => {
+    for (const token of identityTokens(swimmer)) {
+      const first = seenTokens.get(token);
+      if (first === undefined) seenTokens.set(token, index);
+      else union(parent, first, index);
     }
-    existing.personKeys.push(...[swimmer.personKey].filter(Boolean));
-    existing.swims = dedupeSwims([...(existing.swims || []), ...(swimmer.swims || [])]);
-    existing.age = Math.max(Number(existing.age) || 0, Number(swimmer.age) || 0);
-    existing.ageGroup = ageGroupFor(existing.age);
-    existing.personKey = stableMergedPersonKey(existing);
-    existing.name = longestName(existing.name, swimmer.name);
-    existing.sourcePersonName = existing.sourcePersonName || swimmer.sourcePersonName || existing.name;
-    existing.sourceClub = existing.sourceClub || swimmer.sourceClub || swimmer.team || "";
+    for (const token of swimHistoryTokens(swimmer)) {
+      const owners = historyTokenOwners.get(token) || [];
+      owners.push(index);
+      historyTokenOwners.set(token, owners);
+    }
+  });
+
+  const pairOverlaps = new Map();
+  for (const owners of historyTokenOwners.values()) {
+    const uniqueOwners = [...new Set(owners)];
+    for (let i = 0; i < uniqueOwners.length; i += 1) {
+      for (let j = i + 1; j < uniqueOwners.length; j += 1) {
+        const pair = `${uniqueOwners[i]}|${uniqueOwners[j]}`;
+        pairOverlaps.set(pair, (pairOverlaps.get(pair) || 0) + 1);
+      }
+    }
   }
-  for (const swimmer of byIdentity.values()) {
-    const latest = latestTeamSwim(swimmer.swims || []);
-    if (latest?.team) swimmer.team = latest.team;
+  for (const [pair, overlapCount] of pairOverlaps) {
+    if (overlapCount < 2) continue;
+    const [a, b] = pair.split("|").map(Number);
+    union(parent, a, b);
   }
-  return [...byIdentity.values()];
+
+  const groups = new Map();
+  swimmers.forEach((swimmer, index) => {
+    const root = find(parent, index);
+    const rows = groups.get(root) || [];
+    rows.push(swimmer);
+    groups.set(root, rows);
+  });
+
+  return [...groups.values()].map(mergeSwimmerGroup);
 }
 
-function swimmerIdentity(swimmer) {
-  return `${identityPart(swimmer.sourcePersonName || swimmer.name)}|${normalizeGender(swimmer.gender)}|${Number(swimmer.age) || 0}`;
+function identityTokens(swimmer) {
+  const tokens = [];
+  if (swimmer.personKey) tokens.push(`id:${swimmer.personKey}`);
+  for (const swim of swimmer.swims || []) {
+    if (swim.memberId) tokens.push(`id:${swim.memberId}`);
+    if (swim.usasSwimTimeKey) tokens.push(`swim:${swim.usasSwimTimeKey}`);
+  }
+  return [...new Set(tokens.map(String))];
+}
+
+function swimHistoryTokens(swimmer) {
+  const identity = [
+    identityPart(swimmer.sourcePersonName || swimmer.name),
+    normalizeGender(swimmer.gender),
+    Number(swimmer.age) || 0
+  ].join("|");
+  const tokens = [];
+  for (const swim of swimmer.swims || []) {
+    const swimKey = [swim.date, swim.event, swim.course, swim.time, swim.meet]
+      .map(value => identityPart(value))
+      .join("|");
+    if (swimKey.replace(/\|/g, "")) tokens.push(`history:${identity}|${swimKey}`);
+  }
+  return [...new Set(tokens)];
+}
+
+function find(parent, index) {
+  while (parent[index] !== index) {
+    parent[index] = parent[parent[index]];
+    index = parent[index];
+  }
+  return index;
+}
+
+function union(parent, a, b) {
+  const rootA = find(parent, a);
+  const rootB = find(parent, b);
+  if (rootA !== rootB) parent[rootB] = rootA;
+}
+
+function mergeSwimmerGroup(rows) {
+  const [first] = rows;
+  const merged = {
+    ...first,
+    personKeys: rows.flatMap(row => [row.personKey, ...(row.swims || []).map(swim => swim.memberId)].filter(Boolean)),
+    swims: dedupeSwims(rows.flatMap(row => row.swims || []))
+  };
+  merged.age = Math.max(...rows.map(row => Number(row.age) || 0));
+  merged.ageGroup = ageGroupFor(merged.age);
+  merged.gender = normalizeGender(merged.gender);
+  merged.personKey = stableMergedPersonKey(merged);
+  merged.name = rows.reduce((name, row) => longestName(name, row.name), first.name);
+  merged.sourcePersonName = first.sourcePersonName || first.name;
+  merged.sourceClub = first.sourceClub || first.team || "";
+  const latest = latestTeamSwim(merged.swims || []);
+  if (latest?.team) merged.team = latest.team;
+  return merged;
 }
 
 function identityPart(value) {
