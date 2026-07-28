@@ -1,12 +1,13 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-27T16:20:28.438Z",
+  "lastUpdated": "2026-07-28T16:09:18.716Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
     "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-25, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
-    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
+    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned.",
+    "1 event queries failed during this refresh; previous swimmer rows were retained where available for missed events."
   ],
   "swimmers": [
     {
@@ -100142,16 +100143,16 @@
         {
           "event": "400 Free",
           "course": "LCM",
-          "time": "4:38.36",
-          "date": "2026-07-18",
-          "meet": "2026 PN 13&O Long Course Championships",
-          "powerPoints": 703,
-          "standard": "AAA",
+          "time": "4:34.13",
+          "date": "2026-07-25",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 749,
+          "standard": "AAAA",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 58,
           "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 342700134,
+          "usasSwimTimeKey": 343080405,
           "memberId": "5E13D20FFC694D",
           "ageAtMeet": 14
         },
@@ -115413,17 +115414,18 @@
         {
           "event": "200 Free",
           "course": "LCM",
-          "time": "2:16.30",
-          "date": "2025-08-07",
-          "meet": "2025 WESTERN ZONE AGE GROUP CHAMPIONSHIPS",
-          "powerPoints": 662,
+          "time": "2:15.24",
+          "date": "2026-07-24",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 660,
           "standard": "AAA",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 57,
-          "eventCompetitionCategoryKey": 1,
-          "usasSwimTimeKey": 179996178,
-          "ageAtMeet": 13
+          "eventCompetitionCategoryKey": 2,
+          "usasSwimTimeKey": 343082408,
+          "memberId": "204433E8C45E46",
+          "ageAtMeet": 14
         },
         {
           "event": "50 Back",
@@ -364338,32 +364340,34 @@
         {
           "event": "100 Breast",
           "course": "LCM",
-          "time": "1:09.00",
-          "date": "2025-07-18",
-          "meet": "2025 PN 13&O Long Course Championships",
-          "powerPoints": 835,
+          "time": "1:08.56",
+          "date": "2026-07-25",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 804,
           "standard": "AAA",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 69,
-          "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 179499462,
-          "ageAtMeet": 15
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 343082187,
+          "memberId": "1DBEBE84A53349",
+          "ageAtMeet": 16
         },
         {
           "event": "200 Breast",
           "course": "LCM",
-          "time": "2:30.07",
-          "date": "2025-07-19",
-          "meet": "2025 PN 13&O Long Course Championships",
-          "powerPoints": 807,
-          "standard": "AAA",
+          "time": "2:24.58",
+          "date": "2026-07-23",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 877,
+          "standard": "Futures",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 70,
-          "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 179499154,
-          "ageAtMeet": 15
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 343082189,
+          "memberId": "1DBEBE84A53349",
+          "ageAtMeet": 16
         },
         {
           "event": "100 Fly",
@@ -364428,17 +364432,18 @@
         {
           "event": "400 IM",
           "course": "LCM",
-          "time": "4:48.69",
-          "date": "2025-07-18",
-          "meet": "2025 PN 13&O Long Course Championships",
-          "powerPoints": 752,
+          "time": "4:47.21",
+          "date": "2026-07-24",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 748,
           "standard": "AAA",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 75,
-          "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 179497062,
-          "ageAtMeet": 15
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 343082190,
+          "memberId": "1DBEBE84A53349",
+          "ageAtMeet": 16
         },
         {
           "event": "50 Free",
@@ -381042,17 +381047,18 @@
         {
           "event": "400 IM",
           "course": "LCM",
-          "time": "5:04.89",
-          "date": "2025-08-07",
-          "meet": "2025 WESTERN ZONE AGE GROUP CHAMPIONSHIPS",
-          "powerPoints": 709,
-          "standard": "AAA",
+          "time": "4:57.29",
+          "date": "2026-07-24",
+          "meet": "2026 PC Speedo Sectionals - Novato",
+          "powerPoints": 679,
+          "standard": "AA",
           "lsc": "PN",
           "team": "Bainbridge Island Swim Club",
           "swimEventKey": 75,
-          "eventCompetitionCategoryKey": 2,
-          "usasSwimTimeKey": 179998355,
-          "ageAtMeet": 14
+          "eventCompetitionCategoryKey": 1,
+          "usasSwimTimeKey": 343082363,
+          "memberId": "E9A439A00F6A41",
+          "ageAtMeet": 15
         },
         {
           "event": "100 Free",

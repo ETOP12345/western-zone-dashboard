@@ -1,16 +1,16 @@
 {
-  "checkedAt": "2026-07-27T16:15:11.825Z",
-  "finishedAt": "2026-07-27T16:20:28.475Z",
+  "checkedAt": "2026-07-28T16:04:20.196Z",
+  "finishedAt": "2026-07-28T16:09:18.774Z",
   "status": "refreshed",
   "source": "USA Swimming Top Times API via data.usaswimming.org",
   "swimmers": 2843,
   "rowsPerEvent": 25,
   "scyRowsPerEvent": 25,
-  "totalEventRows": 7468,
+  "totalEventRows": 7467,
   "powerPoints": {
-    "total": 7468,
-    "resolved": 7468,
-    "assigned": 7468
+    "total": 7467,
+    "resolved": 7467,
+    "assigned": 7467
   },
   "groups": {
     "10&U|M": {
@@ -56,7 +56,7 @@
       "LCM 200 Back": 1,
       "LCM 50 Breast": 25,
       "LCM 100 Breast": 25,
-      "LCM 200 Breast": 1,
+      "LCM 200 Breast": 0,
       "LCM 50 Fly": 25,
       "LCM 100 Fly": 25,
       "LCM 200 Fly": 0,
@@ -343,5 +343,8 @@
       "SCY 200 IM": 25,
       "SCY 400 IM": 25
     }
-  }
+  },
+  "warnings": [
+    "10&U|F LCM 200 Breast: This operation was aborted"
+  ]
 }
