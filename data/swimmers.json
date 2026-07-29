@@ -1,13 +1,12 @@
 {
   "source": "USA Swimming Top Times API via data.usaswimming.org",
-  "lastUpdated": "2026-07-28T16:09:18.716Z",
+  "lastUpdated": "2026-07-29T15:53:21.218Z",
   "notes": [
     "Refreshed from the current USA Swimming Top Times API.",
     "Filters: PN LSC, LCM ranking events and SCY tie-break events, 2025-07-01 through 2026-07-25, age group, and gender.",
     "The former Sisense DataHub route now redirects to the new Top Times app; this refresh merges fresh Top Times rows into the last good swimmer pool.",
     "Power points are read directly from USA Swimming Top Times response rows.",
-    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned.",
-    "1 event queries failed during this refresh; previous swimmer rows were retained where available for missed events."
+    "USA Swimming currently returns up to 25 Top Times rows per event; existing swimmer rows are retained so the all-around pool does not collapse when lower event ranks are not returned."
   ],
   "swimmers": [
     {
