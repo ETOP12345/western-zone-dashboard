@@ -14,6 +14,7 @@ const REQUEST_ATTEMPTS = 1;
 const POST_ATTEMPTS = 1;
 const MIN_REFRESH_SWIMMERS = Number(process.env.MIN_REFRESH_SWIMMERS || 500);
 const MIN_REFRESH_EVENT_ROWS = Number(process.env.MIN_REFRESH_EVENT_ROWS || 500);
+const MAX_BLOCKED_EVENT_QUERIES = Number(process.env.MAX_BLOCKED_EVENT_QUERIES || 8);
 const QUALIFYING_START = "2025-07-01";
 const ZONE_QUALIFYING_END = "2026-07-25";
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -78,20 +79,28 @@ for (const swimmer of previousPayload.swimmers || []) {
 }
 
 const rowsByGroup = {};
+let blockedEventQueries = 0;
+let stoppedForApiBlock = false;
+
+refreshLoop:
 for (const ageGroup of AGE_GROUPS) {
   for (const gender of GENDERS) {
     const groupKey = `${ageGroup.label}|${gender.value}`;
     rowsByGroup[groupKey] = {};
     for (const [event, course, eventId] of EVENT_QUERIES) {
       let rows = [];
+      let blockedByApi = false;
       try {
         rows = await getTopTimesRows({ ageGroup, gender, eventId });
       } catch (error) {
+        blockedByApi = isApiBlockError(error);
         const warning = `${groupKey} ${course} ${event}: ${error.message}`;
         refreshWarnings.push(warning);
         console.warn(`Warning: ${warning}`);
       }
       rowsByGroup[groupKey][`${course} ${event}`] = rows.length;
+      if (blockedByApi && rows.length === 0) blockedEventQueries += 1;
+      else if (rows.length > 0) blockedEventQueries = 0;
       for (const row of rows) {
         if (!row.memberId || row.memberId === "Relay") continue;
         const swimmer = upsertSwimmer(row, gender, ageGroup);
@@ -103,6 +112,13 @@ for (const ageGroup of AGE_GROUPS) {
         }
       }
       console.log(`${groupKey} ${course} ${event}: ${rows.length}`);
+      if (blockedEventQueries >= MAX_BLOCKED_EVENT_QUERIES && sumEventRows(rowsByGroup) === 0) {
+        stoppedForApiBlock = true;
+        const warning = `Stopped refresh early after ${blockedEventQueries} consecutive blocked USA Swimming API responses with no fresh rows.`;
+        refreshWarnings.push(warning);
+        console.warn(`Warning: ${warning}`);
+        break refreshLoop;
+      }
       await delay(175);
     }
   }
@@ -117,7 +133,14 @@ const swimmers = mergeSwimmerRecords([...swimmersByKey.values()]).sort((a, b) =>
 const totalEventRows = sumEventRows(rowsByGroup);
 if (swimmers.length < MIN_REFRESH_SWIMMERS || totalEventRows < MIN_REFRESH_EVENT_ROWS) {
   const message = `USA Top Times refresh returned ${swimmers.length} swimmers and ${totalEventRows} event rows; expected at least ${MIN_REFRESH_SWIMMERS} swimmers and ${MIN_REFRESH_EVENT_ROWS} event rows. Refusing to overwrite the last good dashboard data.`;
-  await writeStatus("failed-empty-refresh", swimmers.length, totalEventRows, rowsByGroup, message);
+  const previousSwimmers = Array.isArray(previousPayload.swimmers) ? previousPayload.swimmers.length : 0;
+  if (previousSwimmers >= MIN_REFRESH_SWIMMERS) {
+    const fallbackMessage = `${message} Keeping ${previousSwimmers} previously cached swimmers so the scheduled refresh does not fail during a USA Swimming API outage.${stoppedForApiBlock ? " The refresh stopped early after repeated blocked responses." : ""}`;
+    await writeStatus("stale-cache", previousSwimmers, totalEventRows, rowsByGroup, fallbackMessage, refreshWarnings);
+    console.warn(fallbackMessage);
+    process.exit(0);
+  }
+  await writeStatus("failed-empty-refresh", swimmers.length, totalEventRows, rowsByGroup, message, refreshWarnings);
   throw new Error(message);
 }
 
@@ -357,6 +380,10 @@ function minIsoDate(a, b) {
 
 function isRetryableStatus(status) {
   return status === 406 || status === 408 || status === 429 || status >= 500;
+}
+
+function isApiBlockError(error) {
+  return /\b(?:403|406|429)\b/.test(String(error?.message || error || ""));
 }
 
 function inferredCurrentAge(...ages) {
